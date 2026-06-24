@@ -87,8 +87,8 @@ See BUFFER & ALIST in the original function."
 
       ;; Efficiently find the bottom-most window without layout churn
       (while-let ((below (window-in-direction 'below win nil nil nil 'no-minibuf)))
-        (setq most-bottom-win below
-        (setq win below)))
+        (setq most-bottom-win below)
+        (setq win below))
 
       (if (window-parameter current-win 'window-side)
           (user-error "It is set to not display popper buffer for side windows."))
@@ -149,6 +149,7 @@ See BUFFER & ALIST in the original function."
         (setf (alist-get 'popper-display-control-p display-buffer-alist)
               `(,popper-display-function)))
     (when ia/popper-modified-mode
+      (ia/popper-modified-mode -1)
       (message "Popper mode is not enabled. Turn it on before this mode."))))
 
 ;;unfinished.

@@ -1,7 +1,7 @@
-;;; fix-pgtk.el --- Workarounds for pgtk related bugs  -*- lexical-binding: t; -*-
+;;; ia-fix-pgtk.el --- Workarounds for pgtk related bugs  -*- lexical-binding: t; -*-
 
 ;;; Code:
-(require 'init-common)
+(require 'ia-core-utility)
 
 (ia/feat-chunk ia-fix/input-or-childframe-lag t
   ;; corfu, lsp-bridge child-frame popup abortion by space or other no
@@ -10,6 +10,6 @@
   (when (string-search "PGTK" system-configuration-features)
     (setq pgtk-wait-for-event-timeout 0.005)))
 
-(provide 'fix-pgtk)
+(provide 'ia-fix-pgtk)
 
 ;;; fix-pgtk.el ends here

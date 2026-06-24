@@ -1,4 +1,4 @@
-;;; window-prefix-pivot.el --- Pivot window prefix commands for special windows  -*- lexical-binding: t; -*-
+;;; ia-window-prefix-pivot.el --- Pivot window prefix commands for special windows  -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 ;; Opening a new buffer in a dedicated window with `same-window-prefix' doesn't
@@ -55,6 +55,6 @@ pivots focus to the true code workspace before the display logic runs."
       (advice-add 'display-buffer :around #'window-prefix-pivot-ad-display-buffer)
     (advice-remove 'display-buffer #'window-prefix-pivot-ad-display-buffer)))
 
-(provide 'window-prefix-pivot)
+(provide 'ia-window-prefix-pivot)
 
 ;;; window-prefix-pivot.el ends here

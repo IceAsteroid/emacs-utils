@@ -1,4 +1,4 @@
-;;; ia-corfu-cape-sort-functions.el --- Sort functions for corfu & cape  -*- lexical-binding: t; -*-
+;;; ia-cape-capf-sort-utility.el --- Sort functions for corfu & cape  -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 ;; 
@@ -60,6 +60,6 @@ in favor of primary candidates, then applies SORT-FN to the unique list."
       (funcall sort-fn (nreverse unique-candidates)))))
 
 
-(provide 'ia-corfu-cape-sort-functions)
+(provide 'ia-cape-capf-sort-utility)
 
-;;; ia-cape-sort-functions.el ends here
+;;; ia-cape-capf-sort-utility.el ends here
