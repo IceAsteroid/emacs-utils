@@ -47,9 +47,6 @@
 (defvar ia/popper-window-height #'ia/popper--fit-window-height
   "Exactly like the original `popper-window-height', but for `popper-modified-mode'.")
 
-(defvar ia/popper-display-orig-function--cached nil
-  "Cache the original function set in the `popper-display-function' variable.")
-
 (defvar ia/popper-display-function 'ia/popper-select-at-column-bottom-window
   "Works as `popper-display-function', but for `ia/popper-modified-mode'.
 

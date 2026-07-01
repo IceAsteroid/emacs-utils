@@ -15,6 +15,8 @@
     "buffer"
     "completion"
     "org"
+    "info-inbox"
+    "doc-lookup"
     "workaround")
   "List of subdirectories of this repo to add their paths to `load-path'.")
 
