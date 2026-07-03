@@ -10,6 +10,10 @@
 
 ;;; Code:
 
+(defgroup ia-window-prefix-pivot nil
+  "Pivot window prefix commands and better features."
+  :group 'windows)
+
 (defun ia/window-prefix-pivot--utility-window-p (window)
   "Return non-nil if WINDOW is a transient, side, or dedicated utility window.
 Catches Popper popups, sidebar managers (e.g., Treemacs), and dedicated displays."
