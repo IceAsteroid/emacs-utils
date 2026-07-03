@@ -6,6 +6,7 @@
 ;; opposite with `same-window-prefix'.  The mode solve this problem.
 
 (require 'cl-lib)
+(require 'ace-window)
 
 ;;; Code:
 
@@ -45,6 +46,56 @@ pivots focus to the true code workspace before the display logic runs."
           (funcall orig-fun buffer action)))
     ;; Fall back to standard behavior if no prefix is live or we are in a normal window
     (funcall orig-fun buffer action)))
+
+(defcustom ace-other-window-maximum 4
+  "If windows are under this amount, display new buffer via pop-up.
+
+Otherwise display the buffer in an existing window via `ace-window'.
+
+This is to prevent opening too many windows when the screen is too large
+that `split-width-threshold' and `split-height-threshold' determine to
+split more windows popup windows."
+  :group 'ia-window-prefix-pivot
+  :type 'integer)
+
+(defcustom ace-other-window-maximum-exclude-side t
+  "Non-nil to exclude side windows for `ace-other-window-maximum'."
+  :group 'ia-window-prefix-pivot
+  :type 'boolean)
+
+(defcustom ace-other-window-maximum-exclude-dedicated t
+  "Non-nil to exclude dedicated windows for `ace-other-window-maximum'."
+  :group 'ia-window-prefix-pivot
+  :type 'boolean)
+
+(defun ace-other-window-prefix ()
+  "Display the buffer of the next command in an `ace-window` selected window."
+  (interactive)
+  (display-buffer-override-next-command
+   (lambda (buffer alist)
+     (let* ((win-count (seq-count
+                        (lambda (w)
+                          ;; On demand to exclude side or dedicated
+                          ;; windows for `ace-other-window-maximum'.
+                          (and (not (and ace-other-window-maximum-exclude-side
+                                         (window-parameter w 'window-side)))
+                               (not (and ace-other-window-maximum-exclude-dedicated
+                                         (window-dedicated-p w)))))
+                        (aw-window-list)))
+            window type)
+       ;; If the current windows are less than the maximum amount, try
+       ;; to pop up a new window, which also respects split
+       ;; thresholds.  If it hits the limit, OR if popping up fails,
+       ;; fall back to ace-window.
+       (if (and (< win-count ace-other-window-maximum)
+            (setq window (display-buffer-pop-up-window buffer alist)))
+           (setq type 'window)
+         (setq window (aw-select "Ace Window")
+               type 'reuse)
+         (window--display-buffer buffer window 'reuse alist))
+       (cons window type)))
+     nil "[ace-other-window-prefix]")
+  (message "Display next command buffer in a window via ace-window..."))
 
 ;;;###autoload
 (define-minor-mode ia/window-prefix-pivot-mode
