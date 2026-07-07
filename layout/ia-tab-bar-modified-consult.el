@@ -1,15 +1,14 @@
-;;; ia-tab-bar-modified-consult.el --- tab-bar-mode modified & consult features for tab-bar-mode  -*- lexical-binding: t; -*-
+;;; ia-tab-bar-modified-consult.el --- Tab bar modifications -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 ;; A highly optimized, index-safe tab bar management module.
 ;; Provides native UI enhancements, Consult integration, and history tracking.
 
 (require 'cl-lib)
+(require 'consult)
 
-;; Pacify the byte-compiler for Marginalia integration
-(defvar marginalia-mode)
+;; Pacify the compiler for dynamic overrides
 (defvar marginalia-annotators)
-(defvar marginalia-annotator-registry)
 
 ;;; Code:
 
@@ -23,15 +22,12 @@
   :group 'ia/tab-bar-modified)
 
 (defcustom ia/tab-bar-modified-sanitize-new-tab nil
-  "Non-nil to not bring previous selected buffer window to the new tab.
-As to not show the buffer window in the tab line header when
-`global-tab-line-mode' is enabled."
+  "Non-nil to not bring previous selected buffer window to the new tab."
   :type 'boolean
   :group 'ia/tab-bar-modified)
 
 (defcustom ia/tab-bar-modified-disable-marginalia t
-  "Non-nil to natively suppress Marginalia during tab switching.
-When t, uses the custom native UI without Marginalia hijacking the category."
+  "Non-nil to natively suppress Marginalia during tab switching."
   :type 'boolean
   :group 'ia/tab-bar-modified)
 
@@ -59,19 +55,14 @@ When t, uses the custom native UI without Marginalia hijacking the category."
          (put 'ia/tab-bar-modified--history 'history-length value)))
 
 (defcustom ia/tab-bar-modified-sort-function #'ia/tab-bar-modified-sort-active-first
-  "Function to sort completion candidates before rendering.
-It takes two arguments: CANDS (list of current candidate strings)
-and ALIST (the rich candidate data structure).
-Set to nil to let the completion frontend (like Vertico/Consult) handle sorting."
+  "Function to sort completion candidates before rendering."
   :type '(choice (const :tag "Active Tabs First" ia/tab-bar-modified-sort-active-first)
                  (const :tag "Let Frontend Sort" nil)
                  (function :tag "Custom Sort Function"))
   :group 'ia/tab-bar-modified)
 
 (defvar ia/tab-bar-modified--history nil
-  "Tracked history list containing raw selection entries.
-Shared history for `tab-switch', it aliases `tab-bar-switch-to-tab' and
-`ia/consult-tab-switch'.")
+  "Tracked history list containing raw selection entries.")
 
 ;; --- Custom Faces ---
 
@@ -116,20 +107,12 @@ Shared history for `tab-switch', it aliases `tab-bar-switch-to-tab' and
     (append active (nreverse closed))))
 
 (defun ia/tab-bar-modified--extract-visible-buffers (ws)
-  "Recursively extract only currently visible buffers from a window state WS.
-Uses an omni-directional crawl to completely ignore Emacs's irregular
-structural nodes and dotted pairs."
+  "Recursively extract only currently visible buffers from a window state WS."
   (let ((buffers nil))
     (cl-labels ((walk (node)
                   (cond
-                   ;; Found the exact signature of an active buffer: (buffer "name" ...)
-                   ((and (consp node)
-                         (eq (car node) 'buffer)
-                         (stringp (cadr node)))
+                   ((and (consp node) (eq (car node) 'buffer) (stringp (cadr node)))
                     (push (cadr node) buffers))
-                   
-                   ;; Otherwise, if it's any cons cell, keep digging.
-                   ;; By walking `car` then `cdr`, we are 100% immune to dotted pair crashes.
                    ((consp node)
                     (walk (car node))
                     (walk (cdr node))))))
@@ -151,17 +134,22 @@ structural nodes and dotted pairs."
       (if ws
           (let ((bufs (ia/tab-bar-modified--extract-visible-buffers ws)))
             (setq win-count (max 1 (length bufs))
-                  buf-str (if bufs
-                              (mapconcat #'identity bufs " ")
-                            "unknown")))
+                  buf-str (if bufs (mapconcat #'identity bufs " ") "unknown")))
         (setq win-count 0
               buf-str "unknown")))
 
     (list buf-str win-count group)))
 
+(defun ia/tab-bar-modified--sanitize-history ()
+  "Strip text properties and natively deduplicate the history list.
+Prevents 'ghost' duplicates where visually identical strings fail `equal`
+comparisons due to hidden text properties."
+  (when ia/tab-bar-modified--history
+    (setq ia/tab-bar-modified--history
+          (delete-dups (mapcar #'substring-no-properties ia/tab-bar-modified--history)))))
+
 (defun ia/tab-bar-modified--get-candidates (&optional force-history)
-  "Generate a static snapshot alist for stable previews.
-If FORCE-HISTORY is non-nil, include closed history tabs even if globally disabled."
+  "Generate a static snapshot alist for stable previews."
   (let* ((tabs (tab-bar-tabs))
          (active-names nil)
          (candidates nil)
@@ -195,73 +183,72 @@ If FORCE-HISTORY is non-nil, include closed history tabs even if globally disabl
               (push (list hist-item nil hist-item nil nil nil) history-cands))))
         (append candidates (nreverse history-cands))))))
 
-(defun ia/tab-bar-modified--affix-candidates (cands candidates-alist)
-  "Inject right-side indices and compute perfect grid alignments for extra states."
-  (let* ((max-base 0) (max-win 0) (max-grp 0)
-         (items (mapcar (lambda (cand)
-                          (let* ((match (assoc-string cand candidates-alist))
-                                 (idx (nth 1 match))
-                                 (buffer (nth 3 match))
-                                 (win-count (nth 4 match))
-                                 (group (nth 5 match))
-                                 (index-plain (if idx (format " [%d]" idx) " (closed)"))
-                                 (base-width (+ (string-width cand) (string-width index-plain)))
+(defun ia/tab-bar-modified--build-annotator (candidates)
+  "Pre-calculate column widths and return an annotation closure."
+  (let ((max-base 0) (max-win 0) (max-grp 0))
 
-                                 (win-plain (if win-count (format "win:%d" win-count) ""))
-                                 (grp-plain (if win-count
-                                                (format "group:%s"
-                                                        (if (and (stringp group) (> (length group) 0))
-                                                            group "none"))
-                                              ""))
+    ;; Pass 1: Measure maximum widths for grid alignment
+    (dolist (item candidates)
+      (let* ((cand (nth 0 item))
+             (idx  (nth 1 item))
+             (win  (nth 4 item))
+             (grp  (nth 5 item))
+             (base-w (+ (string-width cand) (if idx (length (format " [%d]" idx)) 9))) ; " (closed)" is 9 chars
+             (win-w  (if win (length (format "win:%d" win)) 0))
+             (grp-w  (if win (length (format "group:%s" (if (> (length grp) 0) grp "none"))) 0)))
+        (setq max-base (max max-base base-w)
+              max-win  (max max-win win-w)
+              max-grp  (max max-grp grp-w))))
 
-                                 (index-prop (if idx
-                                                 (propertize index-plain 'face 'ia/tab-bar-modified-index-face)
-                                               (propertize index-plain 'face 'ia/tab-bar-modified-closed-face))))
+    ;; Pass 2: Return the closure that physically builds the string
+    (lambda (cand)
+      (let* ((match (assoc-string cand candidates))
+             (idx   (nth 1 match))
+             (buf   (nth 3 match))
+             (win   (nth 4 match))
+             (grp   (nth 5 match))
+             (i-str (if idx (format " [%d]" idx) " (closed)"))
+             (i-face (if idx 'ia/tab-bar-modified-index-face 'ia/tab-bar-modified-closed-face))
+             (base-w (+ (string-width cand) (string-width i-str)))
+             (pad-base (make-string (max 1 (+ (- max-base base-w) 4)) ?\s))
+             (suffix (concat (propertize i-str 'face i-face) pad-base)))
 
-                            (setq max-base (max max-base base-width)
-                                  max-win  (max max-win (string-width win-plain))
-                                  max-grp  (max max-grp (string-width grp-plain)))
+        (when (and ia/tab-bar-modified-show-extra-states win)
+          (let* ((w-str (format "win:%d" win))
+                 (g-str (format "group:%s" (if (> (length grp) 0) grp "none")))
+                 (w-pad (make-string (max 1 (+ (- max-win (length w-str)) 2)) ?\s))
+                 (g-pad (make-string (max 1 (+ (- max-grp (length g-str)) 2)) ?\s)))
+            (setq suffix (concat suffix
+                                 (propertize w-str 'face 'ia/tab-bar-modified-window-face) w-pad
+                                 (propertize g-str 'face 'ia/tab-bar-modified-group-face) g-pad
+                                 (propertize buf 'face 'ia/tab-bar-modified-buffer-face)))))
 
-                            (list cand index-prop (or buffer "unknown") win-plain grp-plain base-width)))
-                        cands)))
+        ;; Returning a 3-element list maps natively to Consult and Affixation UI
+        (list cand "" suffix)))))
 
-    (mapcar (lambda (item)
-              (let* ((cand (nth 0 item))
-                     (index-prop (nth 1 item))
-                     (buffer (nth 2 item))
-                     (win-plain (nth 3 item))
-                     (grp-plain (nth 4 item))
-                     (base-width (nth 5 item))
-                     ;; Mathematically force positive padding safely
-                     (pad-len (max 1 (+ (- max-base base-width) 4)))
-                     (align-space (make-string pad-len ?\s))
-                     (suffix (concat index-prop align-space)))
+;; --- Shared Execution Utilities ---
 
-                (when (and ia/tab-bar-modified-show-extra-states (> (length win-plain) 0))
-                  (let* ((win-pad-len (max 1 (+ (- max-win (string-width win-plain)) 2)))
-                         (grp-pad-len (max 1 (+ (- max-grp (string-width grp-plain)) 2)))
-                         (win-pad (make-string win-pad-len ?\s))
-                         (grp-pad (make-string grp-pad-len ?\s))
-                         (win-str (propertize win-plain 'face 'ia/tab-bar-modified-window-face))
-                         (grp-str (propertize grp-plain 'face 'ia/tab-bar-modified-group-face))
-                         (buf-str (propertize buffer 'face 'ia/tab-bar-modified-buffer-face)))
+(defun ia/tab-bar-modified--purge-child-frames ()
+  "Forcefully delete ALL child frames (visible or invisible).
+[TRAP WARNING]: Wayland/PGTK Deadlock Prevention.
+When `current-window-configuration` is called, it captures invisible Corfu
+frames. Restoring that state during active minibuffer blocks deadlocks the
+PGTK display server. This aggressively sanitizes the environment first."
+  (when (fboundp 'corfu-quit)
+    (ignore-errors (corfu-quit)))
+  (dolist (frame (frame-list))
+    (when (frame-parent frame)
+      (delete-frame frame))))
 
-                    (setq suffix (concat suffix win-str win-pad grp-str grp-pad buf-str))))
-
-                (list cand "" suffix)))
-            items)))
-
-;; --- Shared Execution & Setup Utilities ---
-
-(defmacro ia/tab-bar-modified--with-thrash-protection (&rest body)
-  "Execute BODY while freezing the active minibuffer height."
-  `(let* ((mini (active-minibuffer-window))
-          (h (and mini (window-height mini))))
-     ,@body
-     (when (and mini (window-live-p mini) h)
-       (let ((delta (- h (window-height mini))))
-         (unless (zerop delta)
-           (ignore-errors (window-resize mini delta)))))))
+(defun ia/tab-bar-modified--run-with-thrash-protection (callback)
+  "Execute CALLBACK while freezing the active minibuffer height."
+  (let* ((mini (active-minibuffer-window))
+         (h (and mini (window-height mini))))
+    (funcall callback)
+    (when (and mini (window-live-p mini) h)
+      (let ((delta (- h (window-height mini))))
+        (unless (zerop delta)
+          (ignore-errors (window-resize mini delta)))))))
 
 (defun ia/tab-bar-modified--execute-switch (selected-key candidates)
   "Execute tab switch or creation based on the SELECTED-KEY from the prompt."
@@ -278,20 +265,25 @@ If FORCE-HISTORY is non-nil, include closed history tabs even if globally disabl
           (set-window-next-buffers (selected-window) nil))
         (tab-bar-rename-tab target-name)))))
 
-(defun ia/tab-bar-modified--run-with-completion-setup (candidates prompt-fn)
-  "Execute PROMPT-FN (a closure) with Marginalia gagging and native properties bound."
-  (let* ((marginalia-mode (if ia/tab-bar-modified-disable-marginalia nil (bound-and-true-p marginalia-mode)))
-         (marginalia-annotators (if ia/tab-bar-modified-disable-marginalia nil (bound-and-true-p marginalia-annotators)))
-         (marginalia-annotator-registry (if ia/tab-bar-modified-disable-marginalia nil (bound-and-true-p marginalia-annotator-registry)))
-         (completion-extra-properties
-          (append
-           `(:category tab
-             :affixation-function
-             ,(lambda (cands) (ia/tab-bar-modified--affix-candidates cands candidates)))
-           (when ia/tab-bar-modified-sort-function
-             `(:display-sort-function
-               ,(lambda (cands) (funcall ia/tab-bar-modified-sort-function cands candidates)))))))
-    (funcall prompt-fn)))
+(defun ia/tab-bar-modified--build-state (candidates orig-index orig-tabs orig-wc)
+  "Build a compiler-safe state closure for Consult previews."
+  (lambda (action cand)
+    (cond
+     ((and (eq action 'preview) cand)
+      (let* ((match (assoc-string cand candidates))
+             (target-idx (nth 1 match)))
+        (when target-idx
+          (ia/tab-bar-modified--run-with-thrash-protection
+           (lambda () (tab-bar-select-tab target-idx))))))
+
+     ((and (eq action 'preview) (not cand))
+      (ia/tab-bar-modified--run-with-thrash-protection
+       (lambda () (tab-bar-select-tab orig-index))))
+
+     ((eq action 'return)
+      (set-frame-parameter nil 'tabs orig-tabs)
+      (set-window-configuration orig-wc)
+      (tab-bar-select-tab orig-index)))))
 
 ;; --- Interactive Commands ---
 
@@ -300,66 +292,75 @@ If FORCE-HISTORY is non-nil, include closed history tabs even if globally disabl
   (interactive)
   (unless tab-bar-mode
     (user-error "Tab-bar-mode is not active"))
+
+  (ia/tab-bar-modified--purge-child-frames)
+
   (let* ((candidates (ia/tab-bar-modified--get-candidates))
          (orig-index (1+ (tab-bar--current-tab-index)))
          (default-cand (car (cl-find-if (lambda (pair) (eq (nth 1 pair) orig-index)) candidates)))
-         ;; SNAPSHOT STATE: Protect against preview corruption!
          (orig-tabs (copy-tree (frame-parameter nil 'tabs)))
          (orig-wc (current-window-configuration)))
 
     (if (null candidates)
         (user-error "No active tabs found")
-      (ia/tab-bar-modified--execute-switch
-       (ia/tab-bar-modified--run-with-completion-setup candidates
-         (lambda ()
-           (consult--read
-            candidates
-            :prompt "Switch Workspace (or create new): "
-            :default default-cand
-            :category 'tab
-            :sort nil
-            :history (and ia/tab-bar-modified-enable-history 'ia/tab-bar-modified--history)
-            :require-match nil
-            :state (lambda (action cand)
-                     (cond
-                      ;; PREVIEW VALID CANDIDATE
-                      ((and (eq action 'preview) cand)
-                       (let* ((match (assoc-string cand candidates))
-                              (target-idx (nth 1 match)))
-                         (when target-idx
-                           (ia/tab-bar-modified--with-thrash-protection
-                            (tab-bar-select-tab target-idx)))))
-                      
-                      ;; PREVIEW NIL (User typed a typo, restore preview state to origin)
-                      ((and (eq action 'preview) (not cand))
-                       (ia/tab-bar-modified--with-thrash-protection
-                        (tab-bar-select-tab orig-index)))
-                      
-                      ;; FINAL SELECTION OR ABORT
-                      ((eq action 'return)
-                       ;; TOTAL ROLLBACK: Restore Pristine Tabs and Windows
-                       (set-frame-parameter nil 'tabs orig-tabs)
-                       (set-window-configuration orig-wc)
-                       (tab-bar-select-tab orig-index)))))))
-       candidates))))
+
+      (let ((marginalia-annotators (if ia/tab-bar-modified-disable-marginalia nil (bound-and-true-p marginalia-annotators)))
+            (history-delete-duplicates t)) ; Force native deduplication
+        (ia/tab-bar-modified--execute-switch
+         (unwind-protect
+             (let ((completion-extra-properties
+                    (list :category 'tab
+                          :display-sort-function (if ia/tab-bar-modified-sort-function
+                                                     (lambda (cands) (funcall ia/tab-bar-modified-sort-function cands candidates))
+                                                   #'identity))))
+               (consult--read
+                candidates
+                :prompt "Switch Workspace (or create new): "
+                :default default-cand
+                :category 'tab
+                :sort nil
+                :history (and ia/tab-bar-modified-enable-history 'ia/tab-bar-modified--history)
+                :require-match nil
+                :annotate (if ia/tab-bar-modified-disable-marginalia (ia/tab-bar-modified--build-annotator candidates) nil)
+                :state (ia/tab-bar-modified--build-state candidates orig-index orig-tabs orig-wc)))
+           ;; Unconditional cleanup
+           (ia/tab-bar-modified--sanitize-history))
+         candidates)))))
 
 (defun ia-advice/tab-bar-switch-indexed-override ()
   "Collision-free override for the built-in `tab-bar-switch-to-tab` command."
   (interactive)
+  (ia/tab-bar-modified--purge-child-frames)
+
   (let* ((candidates (ia/tab-bar-modified--get-candidates))
          (current-idx (1+ (tab-bar--current-tab-index)))
          (default-cand (car (cl-find-if (lambda (pair) (eq (nth 1 pair) current-idx)) candidates))))
     (if (null candidates)
         (user-error "No active tabs found")
-      (ia/tab-bar-modified--execute-switch
-       (ia/tab-bar-modified--run-with-completion-setup candidates
-         (lambda ()
-           (completing-read "Switch to tab: "
-                            candidates
-                            nil nil nil
-                            (and ia/tab-bar-modified-enable-history 'ia/tab-bar-modified--history)
-                            default-cand)))
-       candidates))))
+      (let ((history-delete-duplicates t)) ; Force native deduplication
+        (ia/tab-bar-modified--execute-switch
+         (unwind-protect
+             (let ((marginalia-annotators (if ia/tab-bar-modified-disable-marginalia nil (bound-and-true-p marginalia-annotators)))
+                   (completion-extra-properties
+                    (list :category
+                          'tab
+                          :display-sort-function
+                          (if ia/tab-bar-modified-sort-function
+                              (lambda (cands) (funcall ia/tab-bar-modified-sort-function cands candidates))
+                            #'identity)
+                          :affixation-function
+                          (if ia/tab-bar-modified-disable-marginalia
+                              (let ((annotator (ia/tab-bar-modified--build-annotator candidates)))
+                                (lambda (cands) (mapcar annotator cands)))
+                            nil))))
+               (completing-read "Switch to tab: "
+                                candidates
+                                nil nil nil
+                                (and ia/tab-bar-modified-enable-history 'ia/tab-bar-modified--history)
+                                default-cand))
+           ;; Unconditional cleanup
+           (ia/tab-bar-modified--sanitize-history))
+         candidates)))))
 
 (defun ia-advice/tab-bar-rename-tab-around (orig-fun &optional name arg)
   "Wrap `tab-bar-rename-tab` to provide rich history completion for tab names."
@@ -367,6 +368,8 @@ If FORCE-HISTORY is non-nil, include closed history tabs even if globally disabl
    (let* ((rich-cands (ia/tab-bar-modified--get-candidates t))
           (filtered-cands nil)
           (plain-cands nil))
+
+     (ia/tab-bar-modified--purge-child-frames)
 
      (dolist (cand rich-cands)
        (let ((is-active (nth 1 cand)))
@@ -378,15 +381,37 @@ If FORCE-HISTORY is non-nil, include closed history tabs even if globally disabl
      (setq filtered-cands (nreverse filtered-cands))
      (setq plain-cands (nreverse plain-cands))
 
-     (let* ((selected-key
+     (let* ((history-delete-duplicates t) ; Force native deduplication
+            (selected-key
              (if (null plain-cands)
                  (read-string "New name for tab (leave blank for default name): ")
-               (ia/tab-bar-modified--run-with-completion-setup filtered-cands
-                 (lambda ()
-                   (completing-read
-                    "New name for tab (leave blank for default name): "
-                    plain-cands nil nil nil
-                    (and ia/tab-bar-modified-rename-enable-history 'ia/tab-bar-modified--history))))))
+               (unwind-protect
+                   (let ((marginalia-annotators
+                          (if ia/tab-bar-modified-disable-marginalia
+                              nil
+                            (bound-and-true-p marginalia-annotators)))
+                         (completion-extra-properties
+                          (list
+                           :category
+                           'tab
+                           :display-sort-function
+                           (if ia/tab-bar-modified-sort-function
+                               (lambda (cands)
+                                 (funcall ia/tab-bar-modified-sort-function cands filtered-cands))
+                             #'identity)
+                           :affixation-function
+                           (if ia/tab-bar-modified-disable-marginalia
+                               (let ((annotator (ia/tab-bar-modified--build-annotator filtered-cands)))
+                                 `(lambda (cands)
+                                   (mapcar ,annotator cands)))
+                             nil)
+                           )))
+                     (completing-read
+                      "New name for tab (leave blank for default name): "
+                      plain-cands nil nil nil
+                      (and ia/tab-bar-modified-rename-enable-history 'ia/tab-bar-modified--history)))
+                 ;; Unconditional cleanup
+                 (ia/tab-bar-modified--sanitize-history))))
             (match (assoc-string selected-key filtered-cands))
             (new-name (if match (nth 2 match) selected-key)))
        (list new-name current-prefix-arg))))
