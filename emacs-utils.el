@@ -8,8 +8,9 @@
 
 ;;; Code:
 
+;; Compute the root directory dynamically at runtime or compile-time
 (defvar ia/emacs-utils-sub-dirs
-  '("core"
+  '("core" ;core must be loaded, it's a dependency used in other subdirs.
     "layout"
     "appearance"
     "buffer"
@@ -20,20 +21,20 @@
     "workaround")
   "List of subdirectories of this repo to add their paths to `load-path'.")
 
-;; Compute the root directory dynamically at runtime or compile-time
-(eval-and-compile
-  (defvar ia-utils-root (file-name-directory (or load-file-name buffer-file-name))
-    "The root directory of the emacs-utils repository."))
+;; Safely retrieve the root directory, protected against compilation.
+(defvar ia-utils-root
+  (file-name-directory
+   (or load-file-name
+       (bound-and-true-p byte-compile-current-file)
+       buffer-file-name))
+  "The root directory of the `emacs-utils' repository.")
 
-;; Automatically inject sub directories into the load-path
-(eval-and-compile
-  (dolist (sub-dir ia/emacs-utils-sub-dirs)
-    (let ((dir (expand-file-name sub-dir ia-utils-root)))
-      (when (file-directory-p dir)
-        (add-to-list 'load-path dir)))))
-
-;; Load foundational features used in other sub directories.
-(require 'ia-core-utility)
+(defun ia-load-sub-dirs ()
+  "Inject sub directories into the `load-path'."
+ (dolist (sub-dir ia/emacs-utils-sub-dirs)
+  (let ((dir (expand-file-name sub-dir ia-utils-root)))
+    (when (file-directory-p dir)
+      (add-to-list 'load-path dir)))))
 
 (provide 'emacs-utils)
 
