@@ -73,7 +73,9 @@ split more windows popup windows."
   :type 'boolean)
 
 (defun ace-other-window-prefix ()
-  "Display the buffer of the next command in an `ace-window` selected window."
+  "Display the buffer of the next command in an `ace-window` selected window.
+
+You can bind this command to override `other-window-prefix' keybinding."
   (interactive)
   (display-buffer-override-next-command
    (lambda (buffer alist)
