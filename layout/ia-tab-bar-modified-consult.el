@@ -142,7 +142,7 @@
 
 (defun ia/tab-bar-modified--sanitize-history ()
   "Strip text properties and natively deduplicate the history list.
-Prevents 'ghost' duplicates where visually identical strings fail `equal`
+Prevents duplicates where visually identical strings fail `equal'
 comparisons due to hidden text properties."
   (when ia/tab-bar-modified--history
     (setq ia/tab-bar-modified--history
