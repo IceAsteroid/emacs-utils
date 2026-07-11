@@ -256,7 +256,6 @@ PGTK display server. This aggressively sanitizes the environment first."
     (let* ((match (assoc-string selected-key candidates))
            (target-idx (nth 1 match))
            (target-name (if match (nth 2 match) selected-key)))
-
       (if target-idx
           (tab-bar-select-tab target-idx)
         (tab-bar-new-tab)
