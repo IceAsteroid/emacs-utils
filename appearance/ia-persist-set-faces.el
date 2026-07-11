@@ -4,7 +4,8 @@
 ;; Features to set persistent faces regardless of theme switching.
 
 ;;; TODO
-;; Refactor this code into a mode.
+;; 1. Refactor this code into a mode.  Since it has advices to the
+;; built-in facilities.
 
 ;;; Code:
 
@@ -17,7 +18,7 @@ To prevent to set the faces before the theme finishes loading.")
   "List of functions to execute when a theme changes.")
 
 (defun ia-timer/persist-set-faces--set (&rest _)
-  "Debounce theme switches and execute all registered face overrides."
+  "Debounce theme switch and execute all registered face overrides."
   (when (timerp ia/persist-set-faces--timer)
     (cancel-timer ia/persist-set-faces--timer))
   (setq ia/persist-set-faces--timer
@@ -32,7 +33,7 @@ To prevent to set the faces before the theme finishes loading.")
 (advice-add 'disable-theme :after #'ia-timer/persist-set-faces--set)
 
 (defmacro ia/theme-set-faces (&rest faces)
-  "Define persistent face overrides. Works like `custom-set-faces'.
+  "Define persistent face overrides.  The usage is like `custom-set-faces'.
 Can be called multiple times, handles quotes, and prevents registry bloat.
 
 Each element in FACES should be of the form:
