@@ -284,6 +284,24 @@ PGTK display server. This aggressively sanitizes the environment first."
 
 ;; --- Interactive Commands ---
 
+(defun ia/tab-bar-modified-remove-history-item ()
+  "Selectively remove a specific item from the tab history."
+  (interactive)
+  (if (not ia/tab-bar-modified--history)
+      (user-error "Tab history is already empty")
+    (let ((target (completing-read "Remove history item: " 
+                                   ia/tab-bar-modified--history 
+                                   nil t)))
+      (setq ia/tab-bar-modified--history 
+            (delete target ia/tab-bar-modified--history))
+      (message "Removed '%s' from tab history." target))))
+
+(defun ia/tab-bar-modified-clear-history ()
+  "Completely clear the tab bar history."
+  (interactive)
+  (setq ia/tab-bar-modified--history nil)
+  (message "Tab bar history cleared."))
+
 (defun ia/consult-tab-switch ()
   "Switch tab-bar tabs using live previews, or create a new tab if no match."
   (interactive)
