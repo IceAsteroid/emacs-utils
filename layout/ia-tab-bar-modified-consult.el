@@ -234,8 +234,6 @@ comparisons due to hidden text properties."
 When `current-window-configuration` is called, it captures invisible Corfu
 frames. Restoring that state during active minibuffer blocks deadlocks the
 PGTK display server. This aggressively sanitizes the environment first."
-  (when (fboundp 'corfu-quit)
-    (ignore-errors (corfu-quit)))
   (dolist (frame (frame-list))
     (when (frame-parent frame)
       (delete-frame frame))))
