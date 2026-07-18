@@ -87,6 +87,37 @@ Automatically injects :lisp-dir recipes for packages like pdf-tools."
       (package-vc-install-from-checkout checkout-dir pkg-str))
     (require pkg-sym)))
 
+(defun ia/ensure-substring (string substring &optional separator prepend regexp-p)
+  "Ensure literal SUBSTRING is in STRING and return the resulting string.
+
+SEPARATER is a character or a string to insert between the substring
+concatenated with the original string in a new returned string.
+
+This does not prevent partial match such as `mac' to match `emacs', use
+`ia/ensure-substring-item' instead."
+  (let ((substring (if regexp-p
+                       substring
+                     ;; prevent interpreted as regexp but plain string.
+                     (regexp-quote substring))))
+    (if (string-match-p substring string)
+      string
+    (if prepend
+        (concat substring separator string)
+      (concat string separator substring)))))
+
+(defun ia/ensure-substring-item (string item separator &optional prepend)
+  "Ensure ITEM is in the separated STRING without partial matches.
+Prevents partial matches (e.g., `mac' will not match `emacs')."
+  (let ((items (split-string string separator)))
+    (if (member item items)
+        string ;; The exact item is already in the list
+      ;; Otherwise, add it and rejoin the string
+      (let ((new-items (if prepend
+                           (cons item items)
+                         (append items (list item)))))
+        ;; mapconcat takes: (FUNCTION SEQUENCE SEPARATOR)
+        (mapconcat #'identity new-items separator)))))
+
 (provide 'ia-core-utility)
 
 ;;; ia-core-utility.el ends here
