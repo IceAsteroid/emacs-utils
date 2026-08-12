@@ -5,6 +5,10 @@
 
 ;;; Code:
 
+(defgroup ia/buffer-utility nil
+  "Customizations for buffer operations and editing utilities."
+  :group 'editing)
+
 (defun ia/count-total-lines ()
   "Like `count-lines-page', but count every logical line in the buffer."
   (interactive)
