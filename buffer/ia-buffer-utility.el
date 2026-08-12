@@ -1,12 +1,12 @@
 ;;; ia-buffer-utility.el --- Small snippets for buffer operations  -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;; 
+;;
 
 ;;; Code:
 
 (defun ia/count-total-lines ()
-  "Like `count-lines-page', but count for all lines(logically) in a buffer."
+  "Like `count-lines-page', but count every logical line in the buffer."
   (interactive)
   (save-restriction
     (widen)
@@ -19,8 +19,9 @@
                total before after))))
 
 (defun ia/mark-things-at-point ()
-  "Mark symbol at point.
-If repeated, expand to sexp, then list, then line, then defun."
+  "Mark the symbol at point.
+If repeated, expand to sexp, then list, then line, then defun, and
+continue expand to any outer one if any, then the whole buffer."
   (interactive)
   (if (and (eq last-command this-command) (use-region-p))
       ;; -- EXPANSION PHASE --
