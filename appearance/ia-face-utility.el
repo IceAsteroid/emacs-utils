@@ -1,4 +1,4 @@
-;;; ia-face-utility.el --- Small snippets for face operations
+;;; ia-face-utility.el --- Small snippets for face operations  -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 ;; 
