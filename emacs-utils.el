@@ -22,17 +22,17 @@
   "List of subdirectories of this repo to add their paths to `load-path'.")
 
 ;; Safely retrieve the root directory, protected against compilation.
-(defvar ia-utils-root
+(defvar ia/emacs-utils-root
   (file-name-directory
    (or load-file-name
        (bound-and-true-p byte-compile-current-file)
        buffer-file-name))
   "The root directory of the `emacs-utils' repository.")
 
-(defun ia-load-sub-dirs ()
+(defun ia/emacs-utils-load-sub-dirs ()
   "Inject sub directories into the `load-path'."
  (dolist (sub-dir ia/emacs-utils-sub-dirs)
-  (let ((dir (expand-file-name sub-dir ia-utils-root)))
+  (let ((dir (expand-file-name sub-dir ia/emacs-utils-root)))
     (when (file-directory-p dir)
       (add-to-list 'load-path dir)))))
 
