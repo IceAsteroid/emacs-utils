@@ -1,4 +1,4 @@
-;;; ia-pdf-tools-modified.el --- Additional & Modified Features of Pdf-tools
+;;; ia-pdf-tools-modified.el --- Additional & Modified Features of Pdf-tools  -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 ;; Unfinished.
