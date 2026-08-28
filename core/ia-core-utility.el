@@ -69,19 +69,34 @@ The ARGs are the same semantics of `package-vc-install's."
 Automatically injects :lisp-dir recipes for packages like pdf-tools."
   (let* ((pkg-sym (if (stringp package) (intern package) package))
          (pkg-str (symbol-name pkg-sym))
-         (checkout-dir (if dir
-                           (expand-file-name dir)
-                         (expand-file-name pkg-str ia/local-packages-dir)))
+         (checkout-dir
+          (if dir
+              (expand-file-name dir)
+            (expand-file-name
+             pkg-str
+             ;; Explicitly bail out user-error if
+             ;; `ia/local-packages-dir' is nil and DIR is not
+             ;; specified.  to prevent implicitly to fallback to
+             ;; `default-directory' when expanding the path with
+             ;; `expand-file-name'.
+             (or ia/local-packages-dir
+                 (user-error "ia/package-vc-install-local: `ia/local-packages-dir' is nil")))))
          (lisp-dir (expand-file-name "lisp" checkout-dir)))
+    ;; Guard to check the path validation of `checkout-dir', before
+    ;; feeding to `package-vc-install-from-checkout' that creates
+    ;; dangling symlink if invalid.
+    (unless (file-directory-p checkout-dir)
+      (user-error "ia/package-vc-install-local: checkout directory %S does not exist"
+                  checkout-dir))
     (unless (package-installed-p pkg-sym)
       ;; 1. Refresh archives so it can find dependencies like tablist
       (unless package-archive-contents
         (package-refresh-contents))
-      
-      ;; 2. In Emacs 30, we can cleanly inject the lisp-dir spec into the global 
+
+      ;; 2. In Emacs 30, we can cleanly inject the lisp-dir spec into the global
       ;; list, and package-vc-install-from-checkout will actually respect it!
       (when (file-directory-p lisp-dir)
-        (add-to-list 'package-vc-selected-packages 
+        (add-to-list 'package-vc-selected-packages
                      (list pkg-sym :lisp-dir "lisp")))
       ;; 3. Let the Emacs 30 native engine do the rest perfectly
       (package-vc-install-from-checkout checkout-dir pkg-str))
