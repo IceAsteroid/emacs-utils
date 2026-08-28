@@ -1,4 +1,4 @@
-;;; ia-org-utility.el --- Small custom snippets for org-mode
+;;; ia-org-utility.el --- Small custom snippets for org-mode  -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 ;; 
