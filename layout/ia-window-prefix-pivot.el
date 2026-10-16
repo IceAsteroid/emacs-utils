@@ -94,11 +94,21 @@ You can bind this command to override `other-window-prefix' keybinding."
        ;; thresholds.  If it hits the limit, OR if popping up fails,
        ;; fall back to ace-window.
        (if (and (< win-count ace-other-window-maximum)
-            (setq window (display-buffer-pop-up-window buffer alist)))
+                (setq window (display-buffer-pop-up-window buffer alist)))
            (setq type 'window)
-         (setq window (aw-select "Ace Window")
-               type 'reuse)
-         (window--display-buffer buffer window 'reuse alist))
+         (let (choice)
+           ;; Ask again while the chosen window cannot display the
+           ;; buffer: a utility window (dedicated, side, or a Popper
+           ;; popup).
+           (while (and (setq choice (aw-select "Ace Window"))
+                       (window-live-p choice)
+                       (ia/window-prefix-pivot--utility-window-p choice)))
+           (if (and choice (window-live-p choice))
+               (progn
+                 (setq window choice
+                       type 'reuse)
+                 (window--display-buffer buffer choice 'reuse alist))
+             (setq window nil))))
        (cons window type)))
      nil "[ace-other-window-prefix]")
   (message "Display next command buffer in a window via ace-window..."))
