@@ -66,6 +66,25 @@ split more windows popup windows."
   :group 'ia-window-prefix-pivot
   :type 'boolean)
 
+(defcustom ace-other-window-select t
+  "Whether the window `aw-select' returns is selected.
+
+`t' selects that window after the buffer is displayed, so the display
+leaves point in the window the user chose.
+
+`auto' selects nothing: the caller decides -- a caller that selects the
+window it displayed (`pop-to-buffer') selects that window, and a caller
+that does not select leaves the selected window alone.
+
+`nil' selects nothing either, and undoes a caller that selects: at the
+end of the command the window that was selected before the prompt is
+selected again, the way `display-buffer' treats a `nil'
+`post-command-select-window' entry."
+  :type '(choice (const :tag "Always select" t)
+                 (const :tag "Let the caller decide" auto)
+                 (const :tag "Never select" nil))
+  :group 'ia-window-prefix-pivot)
+
 (defun ace-other-window-prefix ()
   "Display the buffer of the next command in an `ace-window` selected window.
 
@@ -101,7 +120,11 @@ You can bind this command to override `other-window-prefix' keybinding."
                (progn
                  (setq window choice
                        type 'reuse)
-                 (window--display-buffer buffer choice 'reuse alist))
+                 (let ((answering (selected-window)))
+                   (window--display-buffer buffer choice 'reuse alist)
+                   (pcase ace-other-window-select
+                     ('t (select-window choice))
+                     ('nil (ia/select-window-post-command answering)))))
              (setq window nil))))
        (cons window type)))
      nil "[ace-other-window-prefix]")
