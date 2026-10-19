@@ -7,19 +7,13 @@
 
 (require 'cl-lib)
 (require 'ace-window)
+(require 'ia-window-utility)
 
 ;;; Code:
 
 (defgroup ia-window-prefix-pivot nil
   "Pivot window prefix commands and better features."
   :group 'windows)
-
-(defun ia/window-prefix-pivot--utility-window-p (window)
-  "Return non-nil if WINDOW is a transient, side, or dedicated utility window.
-Catches Popper popups, sidebar managers (e.g., Treemacs), and dedicated displays."
-  (or (window-dedicated-p window)
-      (window-parameter window 'window-side)
-      (window-parameter window 'popper)))
 
 (defun ia/window-prefix-pivot--find-last-active-workspace ()
   "Return the most recently used normal editing workspace window on this frame.
@@ -32,7 +26,7 @@ Explicitly filters out active minibuffers and utility windows."
     ;; Iteratively scan for the first genuine text/code editing workspace
     (cl-find-if (lambda (w)
                   (not (or (window-minibuffer-p w)
-                           (ia/window-prefix-pivot--utility-window-p w))))
+                           (ia/window-cannot-display-p w))))
                 frame-windows)))
 
 (defun window-prefix-pivot-ad-display-buffer (orig-fun buffer &optional action)
@@ -41,7 +35,7 @@ If a prefix rule is armed and executing from a utility popup, dynamically
 pivots focus to the true code workspace before the display logic runs."
   (if (and display-buffer-overriding-action
            (not (equal display-buffer-overriding-action '(nil . nil))) ; Ensure a prefix is actually armed
-           (ia/window-prefix-pivot--utility-window-p (selected-window)))
+           (ia/window-cannot-display-p (selected-window)))
       (let ((target-workspace (ia/window-prefix-pivot--find-last-active-workspace)))
         (if target-workspace
             ;; Execute the core display layout engine as if standing in the main workspace
@@ -102,7 +96,7 @@ You can bind this command to override `other-window-prefix' keybinding."
            ;; popup).
            (while (and (setq choice (aw-select "Ace Window"))
                        (window-live-p choice)
-                       (ia/window-prefix-pivot--utility-window-p choice)))
+                       (ia/window-cannot-display-p choice)))
            (if (and choice (window-live-p choice))
                (progn
                  (setq window choice
@@ -123,5 +117,9 @@ You can bind this command to override `other-window-prefix' keybinding."
     (advice-remove 'display-buffer #'window-prefix-pivot-ad-display-buffer)))
 
 (provide 'ia-window-prefix-pivot)
+
+;; Local Variables:
+;; checkdoc-allow-quoting-nil-and-t: t
+;; End:
 
 ;;; window-prefix-pivot.el ends here

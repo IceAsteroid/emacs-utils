@@ -19,6 +19,13 @@
     ;; Always return nil
     nil))
 
+(defun ia/window-cannot-display-p (window)
+  "Return non-nil if WINDOW does not take another buffer's display.
+That is a window dedicated to its buffer, a side window, or a Popper
+popup window."
+  (or (window-dedicated-p window)
+      (window-parameter window 'window-side)
+      (window-parameter window 'popper)))
 
 (provide 'ia-window-utility)
 
