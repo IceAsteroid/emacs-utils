@@ -27,6 +27,20 @@ popup window."
       (window-parameter window 'window-side)
       (window-parameter window 'popper)))
 
+(defun ia/select-window-post-command (window)
+  "Select WINDOW when the current command ends.
+The entry that does it is added to `post-command-hook' and removes
+itself when it runs, so no later command sees it.  This is the way
+`display-buffer' treats a `nil' `post-command-select-window' entry."
+  (when (window-live-p window)
+    (letrec ((postfun
+              (lambda ()
+                (when (window-live-p window)
+                  (select-window window))
+                (remove-hook 'post-command-hook postfun))))
+      (add-hook 'post-command-hook postfun))))
+
+
 (provide 'ia-window-utility)
 
 ;;; ia-window-utility.el ends here
