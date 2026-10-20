@@ -95,6 +95,9 @@ You can bind this command to override `other-window-prefix' keybinding."
      nil "[ace-other-window-prefix]")
   (message "Display next command buffer in a window via ace-window..."))
 
+(defvar ia/other-tab-prefix--in-progress nil
+  "Non-nil while `ia/other-tab-prefix' chooses the tab and its window.")
+
 (defun ia/other-tab-prefix ()
   "Display the buffer of the next command in a tab.
 The next buffer is the buffer displayed by the next command invoked
@@ -102,12 +105,19 @@ immediately after this command.  When the merged action alist names
 `reusable-frames', a tab that already displays the buffer is used first;
 otherwise read a tab name, where an empty name makes a new tab, and an
 existing name selects that tab.  The buffer is then displayed there by
-`ia/display-buffer-action-functions'."
+`ia/display-buffer-action-functions'.
+
+A display made while the tab step runs -- `tab-bar-new-tab-choice' may
+display a buffer of its own -- is left to the other display rules, so it
+does not ask the tab question again."
   (interactive)
   (display-buffer-override-next-command
    (lambda (buffer alist)
-     (let ((result (ia/display-buffer-action-tab buffer alist)))
-       (cons (car-safe result) (or (cdr-safe result) 'reuse))))
+     (if ia/other-tab-prefix--in-progress
+         (cons nil 'reuse)
+       (let ((ia/other-tab-prefix--in-progress t))
+         (let ((result (ia/display-buffer-action-tab buffer alist)))
+           (cons (car-safe result) (or (cdr-safe result) 'reuse))))))
    nil "[other-tab]")
   (message "Display next command buffer in a tab..."))
 
