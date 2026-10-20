@@ -11,8 +11,9 @@
 ;; when `ia/window-split-p' says a split is preferred, else in a window
 ;; the user chooses with `ace-window' -- choosing again while the chosen
 ;; window is one that cannot display it either.  A call that asks for a
-;; tab or a frame is asked which one, or a new one, and the same rule then
-;; displays the buffer there.
+;; tab or a frame is asked which one, or a new one, and the window inside
+;; it is chosen with `aw-select' after a window that already displays the
+;; buffer is used.
 ;;
 ;; The mode conses one `display-buffer-alist' entry at the front of the
 ;; list, matched by every buffer an earlier entry does not take.  Priority
@@ -70,8 +71,8 @@ already displays a second window, and dropping
 question.  A request whose alist names a place for the buffer -- a
 window, a direction, a side, a slot, or a child frame -- is left to the
 caller's own action functions before any function here is tried; a call
-that asks for a tab or a frame is asked which one first, and the
-functions here then display the buffer there."
+that asks for a tab or a frame is asked which one first, and the window
+inside it is chosen with `aw-select'."
   :type '(choice (function :tag "One action function")
                  (repeat :tag "Action functions" function))
   :group 'ia-display-buffer-action)
@@ -128,17 +129,98 @@ or nil."
     (cl-some (lambda (function) (funcall function buffer alist))
              functions)))
 
+(defun ia/display-buffer-action--read-tab-name (buffer alist)
+  "Read the name of a tab for BUFFER, using ALIST's `tab-name' first.
+A `tab-name' function is called with BUFFER and ALIST.  Otherwise use
+`ia/tab-bar-modified-read-tab-name' when its package is loaded, and a
+plain `completing-read' over the tab names when it is not.  An empty
+name is returned as such."
+  (let ((name (alist-get 'tab-name alist)))
+    (cond ((functionp name) (funcall name buffer alist))
+          (name name)
+          ((fboundp 'ia/tab-bar-modified-read-tab-name)
+           (ia/tab-bar-modified-read-tab-name))
+          (t
+           (completing-read
+            "Tab (empty for a new tab): "
+            (mapcar (lambda (tab) (alist-get 'name tab)) (tab-bar-tabs))
+            nil nil)))))
+
+(defun ia/display-buffer-action--select-tab (buffer alist name)
+  "Select the tab NAME for BUFFER, or make a new tab with that name.
+An existing name selects its tab and returns `reuse'; a new or empty
+name makes a tab and returns `tab'.  The `tab-group' entry of ALIST
+names the group of a new tab; a function there is called with BUFFER and
+ALIST."
+  (let ((index (and (not (string-empty-p name))
+                    (cl-position name (tab-bar-tabs)
+                                 :key (lambda (tab) (alist-get 'name tab))
+                                 :test #'equal))))
+    (if index
+        (progn
+          (tab-bar-select-tab (1+ index))
+          'reuse)
+      (tab-bar-new-tab)
+      (when (bound-and-true-p ia/tab-bar-modified-sanitize-new-tab)
+        (set-window-prev-buffers (selected-window) nil)
+        (set-window-next-buffers (selected-window) nil))
+      (unless (string-empty-p name)
+        (tab-bar-rename-tab name))
+      (let ((group (alist-get 'tab-group alist)))
+        (when (functionp group)
+          (setq group (funcall group buffer alist)))
+        (when group
+          (tab-bar-change-tab-group group)))
+      'tab)))
+
+(defun ia/display-buffer-action--choose-tab-window ()
+  "Ask for a window of the selected frame with `aw-select'.
+The window labels are shown for two or more windows, and the split
+dispatch keys of `aw-dispatch-alist' split the chosen window and return
+the new one.  With one window the key is read too, so a split is still
+possible; any other key uses that window.  Ask again while the chosen
+window cannot display a buffer.  Return the window, or nil."
+  (when (= (length (window-list nil 'no-minibuf)) 1)
+    (message "Split with ?v, ?b or ?F; any other key uses this window"))
+  (let ((aw-scope 'frame)
+        (aw-ignore-current nil)
+        (aw-dispatch-when-more-than 0)
+        (aw-dispatch-always t)
+        done win)
+    (while (and (not done)
+                (setq win (aw-select "Display buffer in window"))
+                (window-live-p win))
+      (cond
+       ((ia/window-cannot-display-p win))
+       (t (setq done t))))
+    win))
+
+(defun ia/display-buffer-action--display-in-tab (buffer alist)
+  "Display BUFFER in the selected tab, reusing a window or asking.
+A window of the selected frame that already displays BUFFER is used
+first.  Otherwise ask with `ia/display-buffer-action--choose-tab-window'
+and display BUFFER in the chosen or split window.  ALIST is passed to
+`window--display-buffer'.  Return the window and `reuse' as a cons, or
+nil when no window was chosen."
+  (if-let* ((window (get-buffer-window buffer (selected-frame))))
+      (progn
+        (window--display-buffer buffer window 'reuse alist)
+        (cons window 'reuse))
+    (when-let* ((window (ia/display-buffer-action--choose-tab-window)))
+      (window--display-buffer buffer window 'reuse alist)
+      (cons window 'reuse))))
+
 (defun ia/display-buffer-action-tab (buffer alist)
-  "Display BUFFER in a tab by the mode's action functions.
+  "Display BUFFER in a tab, asking which and in which window.
 When `reusable-frames' is non-nil, use `tab-bar-get-buffer-tab' first,
 as `display-buffer-in-tab' does, and select the tab that already
-displays BUFFER.  Otherwise the `tab-name' entry names the tab; a
-function there is called with BUFFER and ALIST.  Without a name, read
-one, where an empty name makes a new tab.  An existing name selects that
-tab; a new name makes a tab with that name.  `tab-group' names the group
-of a new tab.  Return the window and its type as a cons, `reuse' for an
-existing tab and `tab' for a new one, or nil in batch or while the
-minibuffer is active."
+displays BUFFER.  Otherwise read a name with
+`ia/display-buffer-action--read-tab-name' and select or make that tab.
+  In the tab, reuse a window that already displays BUFFER; if there is
+none, ask with `aw-select', where the split dispatch keys split the
+chosen window.  ALIST is the action alist of the display.  Return the
+window and the tab's type as a cons, `reuse' for an existing tab and
+`tab' for a new one, or nil in batch or while the minibuffer is active."
   (when (and (not noninteractive)
              (not (active-minibuffer-window)))
     (let ((reusable (and (alist-get 'reusable-frames alist)
@@ -154,32 +236,12 @@ minibuffer is active."
                 (select-frame-set-input-focus frame))
               (when index
                 (tab-bar-select-tab (1+ index))))
-            (when-let* ((window (ia/display-buffer-action--run buffer alist)))
-              (cons window 'reuse)))
-        (let* ((name (alist-get 'tab-name alist))
-               (name (if (functionp name) (funcall name buffer alist) name))
-               (name (or name
-                         (completing-read
-                          "Tab (empty for a new tab): "
-                          (mapcar (lambda (tab) (alist-get 'name tab))
-                                  (tab-bar-tabs))
-                          nil nil)))
-               (index (and (not (string-empty-p name))
-                           (cl-position name (tab-bar-tabs)
-                                        :key (lambda (tab) (alist-get 'name tab))
-                                        :test #'equal))))
-          (if index
-              (tab-bar-select-tab (1+ index))
-            (tab-bar-new-tab)
-            (unless (string-empty-p name)
-              (tab-bar-rename-tab name))
-            (let ((group (alist-get 'tab-group alist)))
-              (when (functionp group)
-                (setq group (funcall group buffer alist)))
-              (when group
-                (tab-bar-change-tab-group group))))
-          (when-let* ((window (ia/display-buffer-action--run buffer alist)))
-            (cons window (if index 'reuse 'tab))))))))
+            (ia/display-buffer-action--display-in-tab buffer alist))
+        (let* ((name (ia/display-buffer-action--read-tab-name buffer alist))
+               (type (ia/display-buffer-action--select-tab buffer alist name))
+               (result (ia/display-buffer-action--display-in-tab buffer alist)))
+          (when result
+            (cons (car result) type)))))))
 
 (defun ia/display-buffer-action--frames (alist)
   "Return the live visible frames a frame question can offer.
@@ -198,13 +260,15 @@ A `frame-predicate' entry in ALIST filters them, as it does for
       frames)))
 
 (defun ia/display-buffer-action--frame (buffer alist)
-  "Display BUFFER in a frame by the mode's action functions.
+  "Display BUFFER in a frame, asking which frame and which window.
 Read a frame title; an empty title makes a new frame through
 `display-buffer-pop-up-frame', which keeps the `pop-up-frame-parameters'
-of ALIST.  A title that names a frame selects that frame, then the action
-functions display BUFFER in it, with the `inhibit-switch-frame' of ALIST
-keeping the frame from being raised.  Return the window, or nil in batch
-or while the minibuffer is active."
+of ALIST.  A title that names a frame selects it, giving focus unless
+`inhibit-switch-frame'; when that frame has more than one tab, read a
+tab name and select or make that tab.  Then reuse a window of the tab
+that already displays BUFFER, or ask with `aw-select', where the split
+dispatch keys split the chosen window.  Return the window, or nil in
+batch or while the minibuffer is active."
   (when (and (not noninteractive)
              (not (active-minibuffer-window)))
     (let* ((frames (ia/display-buffer-action--frames alist))
@@ -224,7 +288,14 @@ or while the minibuffer is active."
             (if (alist-get 'inhibit-switch-frame alist)
                 (select-frame frame)
               (select-frame-set-input-focus frame))
-            (ia/display-buffer-action--run buffer alist))
+            (when (> (length (tab-bar-tabs)) 1)
+              (let ((tab-name (ia/display-buffer-action--read-tab-name
+                               buffer alist)))
+                (ia/display-buffer-action--select-tab buffer alist tab-name)))
+            (let ((result (ia/display-buffer-action--display-in-tab
+                           buffer alist)))
+              (when result
+                (car result))))
         (display-buffer-pop-up-frame buffer alist)))))
 
 (defun ia/display-buffer-action--placed-p (alist)
@@ -320,9 +391,10 @@ for a window with `ace-window', by the action functions
 `ia/display-buffer-action-functions' lists in order.  A call that asks
 for a tab or a frame -- through `tab-name', `tab-group',
 `pop-up-frames', or a tab or frame action function in its ACTION -- is
-asked which one, or a new one, and the same functions display the buffer
-there.  A request whose alist names a window, a direction, a side, a
-slot, or a child frame is left to the caller's own action functions, and
+asked which one, or a new one, then asked for the window inside it with
+`aw-select', where the split dispatch keys split the chosen window.  A
+request whose alist names a window, a direction, a side, a slot, or a
+child frame is left to the caller's own action functions, and
 `display-buffer-overriding-action' is consulted before the entry.
 When disabled, remove that entry."
   :global t

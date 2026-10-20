@@ -106,8 +106,7 @@ existing name selects that tab.  The buffer is then displayed there by
   (interactive)
   (display-buffer-override-next-command
    (lambda (buffer alist)
-     (let* ((alist (append alist '((inhibit-same-window . nil))))
-            (result (ia/display-buffer-action-tab buffer alist)))
+     (let ((result (ia/display-buffer-action-tab buffer alist)))
        (cons (car-safe result) (or (cdr-safe result) 'reuse))))
    nil "[other-tab]")
   (message "Display next command buffer in a tab..."))
