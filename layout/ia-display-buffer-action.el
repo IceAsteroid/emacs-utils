@@ -96,7 +96,10 @@ Choose again while the chosen window cannot display BUFFER: a window
 `ia/window-cannot-display-p' accepts (dedicated, a side window, or a
 Popper popup).  The window that just refused the display, the selected
 window, is not offered, nor is it when the caller asked for another
-window through `inhibit-same-window'.
+window through `inhibit-same-window'.  Should the choice return that
+window anyway -- `aw-select' has none other to offer -- choose nothing,
+so the action functions that follow can display the buffer where the
+caller asked.
 
 Choose nothing when no one can answer: in batch, or while the minibuffer
 is active, where the displays are the minibuffer's own helpers and a
@@ -114,11 +117,21 @@ selects the answering window again at the end of the command."
                        ((0 t) 'global)))
            (aw-ignore-current (or (cdr (assq 'inhibit-same-window alist))
                                   (ia/window-cannot-display-p (selected-window))))
-           win)
+           done win)
       (when aw-scope
-        (while (and (setq win (aw-select "Display buffer in window"))
-                    (window-live-p win)
-                    (ia/window-cannot-display-p win)))
+        (while (and (not done)
+                    (setq win (aw-select "Display buffer in window"))
+                    (window-live-p win))
+          (cond
+           ;; `aw-select' returns the window it was told to ignore when it
+           ;; has none other to offer: its branch for one window returns
+           ;; `(or (car wnd-list) start-window)' whatever
+           ;; `aw-ignore-current' says.  Stop asking and decline.
+           ((and aw-ignore-current (eq win (selected-window)))
+            (setq done t
+                  win nil))
+           ((ia/window-cannot-display-p win))
+           (t (setq done t))))
         (when (and win (window-live-p win))
           (let ((answering (selected-window)))
             (window--display-buffer buffer win 'reuse alist)
