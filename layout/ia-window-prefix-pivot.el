@@ -7,6 +7,7 @@
 
 (require 'cl-lib)
 (require 'ia-window-utility)
+(require 'ia-display-buffer-action)
 
 ;;; Code:
 
@@ -93,6 +94,23 @@ You can bind this command to override `other-window-prefix' keybinding."
        (cons window type)))
      nil "[ace-other-window-prefix]")
   (message "Display next command buffer in a window via ace-window..."))
+
+(defun ia/other-tab-prefix ()
+  "Display the buffer of the next command in a tab.
+The next buffer is the buffer displayed by the next command invoked
+immediately after this command.  When the merged action alist names
+`reusable-frames', a tab that already displays the buffer is used first;
+otherwise read a tab name, where an empty name makes a new tab, and an
+existing name selects that tab.  The buffer is then displayed there by
+`ia/display-buffer-action-functions'."
+  (interactive)
+  (display-buffer-override-next-command
+   (lambda (buffer alist)
+     (let* ((alist (append alist '((inhibit-same-window . nil))))
+            (result (ia/display-buffer-action-tab buffer alist)))
+       (cons (car-safe result) (or (cdr-safe result) 'reuse))))
+   nil "[other-tab]")
+  (message "Display next command buffer in a tab..."))
 
 ;;;###autoload
 (define-minor-mode ia/window-prefix-pivot-mode

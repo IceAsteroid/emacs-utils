@@ -128,39 +128,58 @@ or nil."
     (cl-some (lambda (function) (funcall function buffer alist))
              functions)))
 
-(defun ia/display-buffer-action--tab (buffer alist)
+(defun ia/display-buffer-action-tab (buffer alist)
   "Display BUFFER in a tab by the mode's action functions.
-The `tab-name' entry names the tab; a function there is called with
-BUFFER and ALIST.  Without a name, read one, where an empty name makes a
-new tab.  An existing name selects that tab; a new name makes a tab with
-that name.  `tab-group' names the group of a new tab.  Return the window
-the action functions display, or nil in batch or while the minibuffer is
-active."
+When `reusable-frames' is non-nil, use `tab-bar-get-buffer-tab' first,
+as `display-buffer-in-tab' does, and select the tab that already
+displays BUFFER.  Otherwise the `tab-name' entry names the tab; a
+function there is called with BUFFER and ALIST.  Without a name, read
+one, where an empty name makes a new tab.  An existing name selects that
+tab; a new name makes a tab with that name.  `tab-group' names the group
+of a new tab.  Return the window and its type as a cons, `reuse' for an
+existing tab and `tab' for a new one, or nil in batch or while the
+minibuffer is active."
   (when (and (not noninteractive)
              (not (active-minibuffer-window)))
-    (let* ((name (alist-get 'tab-name alist))
-           (name (if (functionp name) (funcall name buffer alist) name))
-           (name (or name
-                     (completing-read
-                      "Tab (empty for a new tab): "
-                      (mapcar (lambda (tab) (alist-get 'name tab))
-                              (tab-bar-tabs))
-                      nil nil)))
-           (index (and (not (string-empty-p name))
-                       (cl-position name (tab-bar-tabs)
-                                    :key (lambda (tab) (alist-get 'name tab))
-                                    :test #'equal))))
-      (if index
-          (tab-bar-select-tab (1+ index))
-        (tab-bar-new-tab)
-        (unless (string-empty-p name)
-          (tab-bar-rename-tab name))
-        (let ((group (alist-get 'tab-group alist)))
-          (when (functionp group)
-            (setq group (funcall group buffer alist)))
-          (when group
-            (tab-bar-change-tab-group group))))
-      (ia/display-buffer-action--run buffer alist))))
+    (let ((reusable (and (alist-get 'reusable-frames alist)
+                         (tab-bar-get-buffer-tab
+                          buffer
+                          (alist-get 'reusable-frames alist)
+                          (alist-get 'ignore-current-tab alist)))))
+      (if reusable
+          (progn
+            (let ((frame (alist-get 'frame reusable))
+                  (index (alist-get 'index reusable)))
+              (when frame
+                (select-frame-set-input-focus frame))
+              (when index
+                (tab-bar-select-tab (1+ index))))
+            (when-let* ((window (ia/display-buffer-action--run buffer alist)))
+              (cons window 'reuse)))
+        (let* ((name (alist-get 'tab-name alist))
+               (name (if (functionp name) (funcall name buffer alist) name))
+               (name (or name
+                         (completing-read
+                          "Tab (empty for a new tab): "
+                          (mapcar (lambda (tab) (alist-get 'name tab))
+                                  (tab-bar-tabs))
+                          nil nil)))
+               (index (and (not (string-empty-p name))
+                           (cl-position name (tab-bar-tabs)
+                                        :key (lambda (tab) (alist-get 'name tab))
+                                        :test #'equal))))
+          (if index
+              (tab-bar-select-tab (1+ index))
+            (tab-bar-new-tab)
+            (unless (string-empty-p name)
+              (tab-bar-rename-tab name))
+            (let ((group (alist-get 'tab-group alist)))
+              (when (functionp group)
+                (setq group (funcall group buffer alist)))
+              (when group
+                (tab-bar-change-tab-group group))))
+          (when-let* ((window (ia/display-buffer-action--run buffer alist)))
+            (cons window (if index 'reuse 'tab))))))))
 
 (defun ia/display-buffer-action--frames (alist)
   "Return the live visible frames a frame question can offer.
@@ -261,7 +280,7 @@ names a place for the buffer, call the functions of
 `ia/display-buffer-action-functions' in order and return the first window
 they display."
   (pcase (ia/display-buffer-action--target alist)
-    ('tab (ia/display-buffer-action--tab buffer alist))
+    ('tab (car-safe (ia/display-buffer-action-tab buffer alist)))
     ('frame (ia/display-buffer-action--frame buffer alist))
     (_
      (unless (ia/display-buffer-action--placed-p alist)
