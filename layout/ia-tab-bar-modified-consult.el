@@ -183,20 +183,21 @@ comparisons due to hidden text properties."
               (push (list hist-item nil hist-item nil nil nil) history-cands))))
         (append candidates (nreverse history-cands))))))
 
-(defun ia/tab-bar-modified-read-tab-name ()
+(defun ia/tab-bar-modified-read-tab-name (&optional initial)
   "Read a tab name with this package's candidates and history.
 The live tabs come first, sorted by `ia/tab-bar-modified-sort-function',
 followed by the closed names in `ia/tab-bar-modified--history'.  The
 chosen name is returned; selecting the tab or making a new one is the
-caller's.  An empty input returns an empty name, which the caller may
-take as a new tab."
+caller's.  INITIAL is the initial minibuffer input and defaults to the
+current tab's name; pass \"\" when the empty name should mean a new tab."
   (let* ((candidates (ia/tab-bar-modified--get-candidates))
          (names (mapcar #'car candidates))
-         (current (car (cl-find-if
-                        (lambda (candidate)
-                          (eq (nth 1 candidate)
-                              (1+ (tab-bar--current-tab-index))))
-                        candidates)))
+         (current (or initial
+                      (car (cl-find-if
+                            (lambda (candidate)
+                              (eq (nth 1 candidate)
+                                  (1+ (tab-bar--current-tab-index))))
+                            candidates))))
          (marginalia-annotators
           (if ia/tab-bar-modified-disable-marginalia
               nil

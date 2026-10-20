@@ -139,7 +139,7 @@ name is returned as such."
     (cond ((functionp name) (funcall name buffer alist))
           (name name)
           ((fboundp 'ia/tab-bar-modified-read-tab-name)
-           (ia/tab-bar-modified-read-tab-name))
+           (ia/tab-bar-modified-read-tab-name ""))
           (t
            (completing-read
             "Tab (empty for a new tab): "
