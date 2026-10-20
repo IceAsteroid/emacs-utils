@@ -6,7 +6,6 @@
 ;; opposite with `same-window-prefix'.  The mode solve this problem.
 
 (require 'cl-lib)
-(require 'ace-window)
 (require 'ia-window-utility)
 
 ;;; Code:
@@ -45,27 +44,6 @@ pivots focus to the true code workspace before the display logic runs."
     ;; Fall back to standard behavior if no prefix is live or we are in a normal window
     (funcall orig-fun buffer action)))
 
-(defcustom ace-other-window-maximum 4
-  "If windows are under this amount, display new buffer via pop-up.
-
-Otherwise display the buffer in an existing window via `ace-window'.
-
-This is to prevent opening too many windows when the screen is too large
-that `split-width-threshold' and `split-height-threshold' determine to
-split more windows popup windows."
-  :group 'ia-window-prefix-pivot
-  :type 'integer)
-
-(defcustom ace-other-window-maximum-exclude-side t
-  "Non-nil to exclude side windows for `ace-other-window-maximum'."
-  :group 'ia-window-prefix-pivot
-  :type 'boolean)
-
-(defcustom ace-other-window-maximum-exclude-dedicated t
-  "Non-nil to exclude dedicated windows for `ace-other-window-maximum'."
-  :group 'ia-window-prefix-pivot
-  :type 'boolean)
-
 (defcustom ace-other-window-select t
   "Whether the window `aw-select' returns is selected.
 
@@ -92,31 +70,17 @@ You can bind this command to override `other-window-prefix' keybinding."
   (interactive)
   (display-buffer-override-next-command
    (lambda (buffer alist)
-     (let* ((win-count (seq-count
-                        (lambda (w)
-                          ;; On demand to exclude side or dedicated
-                          ;; windows for `ace-other-window-maximum'.
-                          (and (not (and ace-other-window-maximum-exclude-side
-                                         (window-parameter w 'window-side)))
-                               (not (and ace-other-window-maximum-exclude-dedicated
-                                         (window-dedicated-p w)))))
-                        (aw-window-list)))
-            window type)
+     (let (window type)
        ;; If the current windows are less than the maximum amount, try
        ;; to pop up a new window, which also respects split
        ;; thresholds.  If it hits the limit, OR if popping up fails,
        ;; fall back to ace-window.
-       (if (and (< win-count ace-other-window-maximum)
+       (if (and (ia/window-split-p)
                 (setq window (display-buffer-pop-up-window buffer alist)))
            (setq type 'window)
-         (let (choice)
-           ;; Ask again while the chosen window cannot display the
-           ;; buffer: a utility window (dedicated, side, or a Popper
-           ;; popup).
-           (while (and (setq choice (aw-select "Ace Window"))
-                       (window-live-p choice)
-                       (ia/window-cannot-display-p choice)))
-           (if (and choice (window-live-p choice))
+         (let ((choice (ia/choose-display-window aw-scope aw-ignore-current
+                                                "Ace Window")))
+           (if choice
                (progn
                  (setq window choice
                        type 'reuse)

@@ -6,10 +6,11 @@
 ;; Emacs's choice, made by its default action functions, so the buffer
 ;; lands where the user does not expect it.  `ia/display-buffer-action-mode'
 ;; replaces that with one rule and one choice: a buffer is displayed in a
-;; window that already displays it, else in the selected window,
-;; and a buffer the selected window cannot display is displayed in a
-;; window the user chooses with `ace-window' -- choosing again while the
-;; chosen window is one that cannot display it either.
+;; window that already displays it, else in the selected window, and a
+;; buffer the selected window cannot display is displayed in a new window
+;; when `ia/window-split-p' says a split is preferred, else in a window
+;; the user chooses with `ace-window' -- choosing again while the chosen
+;; window is one that cannot display it either.
 ;;
 ;; The mode conses one `display-buffer-alist' entry at the front of the
 ;; list, matched by every buffer an earlier entry does not take.  Priority
@@ -20,7 +21,6 @@
 ;; a tab or a frame -- is left to the caller's own action functions.
 
 (require 'cl-lib)
-(require 'ace-window)
 (require 'ia-window-utility)
 
 ;;; Code:
@@ -52,19 +52,20 @@ selected again, the way `display-buffer' treats a `nil'
 (defcustom ia/display-buffer-action-functions
   '(display-buffer-reuse-window
     display-buffer-same-window
-    ia/display-buffer-action-choose-window)
+    ia/display-buffer-action-split-or-ask)
   "The action functions the mode's entry tries, in order.
 Each is called with the buffer and the action alist, and the first one
 that returns a window decides the display.  The default shows a buffer
 in a window that already displays it, else in the selected window, and
-otherwise asks for a window with `ace-window'.
+otherwise splits a new window when `ia/window-split-p' says a split is
+preferred, or asks for a window with `ace-window'.
 
 An action function can be added, dropped or reordered here: putting
 `display-buffer-same-window' first gives a buffer that another window
 already displays a second window, and dropping
-`ia/display-buffer-action-choose-window' removes the question.  A request
-whose alist names a place for the buffer is left to the caller's own
-action functions before any function here is tried."
+`ia/display-buffer-action-split-or-ask' removes the split and the
+question.  A request whose alist names a place for the buffer is left to
+the caller's own action functions before any function here is tried."
   :type '(choice (function :tag "One action function")
                  (repeat :tag "Action functions" function))
   :group 'ia-display-buffer-action)
@@ -87,58 +88,39 @@ a deliberate placement, left to the caller's own action functions."
 
 (defun ia/display-buffer-action-choose-window (buffer alist)
   "Display BUFFER in a window chosen with `ace-window'.
+`ia/choose-display-window' asks for the window: it asks again while the
+chosen window cannot display BUFFER, and chooses nothing when no window
+can answer.  The chosen window displays BUFFER through
+`window--display-buffer' with ALIST, so the caller's entries -- a
+`body-function' among them -- still take effect.  What
+`ia/display-buffer-action-select' does with the selected window is its
+own choice: `t' selects the chosen window, `auto' selects nothing, and
+`nil' selects nothing now and selects the answering window again at the
+end of the command."
+  (let* ((aw-scope (cl-case (cdr (assq 'reusable-frames alist))
+                     ((nil) 'frame)
+                     (visible 'visible)
+                     ((0 t) 'global)))
+         (aw-ignore-current (or (cdr (assq 'inhibit-same-window alist))
+                                (ia/window-cannot-display-p (selected-window)))))
+    (when-let* ((win (ia/choose-display-window aw-scope aw-ignore-current)))
+      (let ((answering (selected-window)))
+        (window--display-buffer buffer win 'reuse alist)
+        (pcase ia/display-buffer-action-select
+          ('t (select-window win))
+          ('nil (ia/select-window-post-command answering))))
+      win)))
 
-The chosen window displays BUFFER through `window--display-buffer' with
-ALIST, so the caller's entries -- a `body-function' among them -- still
-take effect.
-
-Choose again while the chosen window cannot display BUFFER: a window
-`ia/window-cannot-display-p' accepts (dedicated, a side window, or a
-Popper popup).  The window that just refused the display, the selected
-window, is not offered, nor is it when the caller asked for another
-window through `inhibit-same-window'.  Should the choice return that
-window anyway -- `aw-select' has none other to offer -- choose nothing,
-so the action functions that follow can display the buffer where the
-caller asked.
-
-Choose nothing when no one can answer: in batch, or while the minibuffer
-is active, where the displays are the minibuffer's own helpers and a
-choice would steal the completion keys.  Return `nil' then, so the
-action functions that follow run.  Cancelling the choice (C-g) quits the
-command whose display it is.  What `ia/display-buffer-action-select'
-does with the selected window is its own choice: `t' selects the chosen
-window, `auto' selects nothing, and `nil' selects nothing now and
-selects the answering window again at the end of the command."
-  (when (and (not noninteractive)
-             (not (active-minibuffer-window)))
-    (let* ((aw-scope (cl-case (cdr (assq 'reusable-frames alist))
-                       ((nil) 'frame)
-                       (visible 'visible)
-                       ((0 t) 'global)))
-           (aw-ignore-current (or (cdr (assq 'inhibit-same-window alist))
-                                  (ia/window-cannot-display-p (selected-window))))
-           done win)
-      (when aw-scope
-        (while (and (not done)
-                    (setq win (aw-select "Display buffer in window"))
-                    (window-live-p win))
-          (cond
-           ;; `aw-select' returns the window it was told to ignore when it
-           ;; has none other to offer: its branch for one window returns
-           ;; `(or (car wnd-list) start-window)' whatever
-           ;; `aw-ignore-current' says.  Stop asking and decline.
-           ((and aw-ignore-current (eq win (selected-window)))
-            (setq done t
-                  win nil))
-           ((ia/window-cannot-display-p win))
-           (t (setq done t))))
-        (when (and win (window-live-p win))
-          (let ((answering (selected-window)))
-            (window--display-buffer buffer win 'reuse alist)
-            (pcase ia/display-buffer-action-select
-              ('t (select-window win))
-              ('nil (ia/select-window-post-command answering))))
-          win)))))
+(defun ia/display-buffer-action-split-or-ask (buffer alist)
+  "Display BUFFER in a new window when a split is preferred, else ask.
+`ia/window-split-p' decides through `ia/window-split-maximum' and its
+two exclusion options.  When it says a split is preferred, try
+`display-buffer-pop-up-window'; when that fails, and when the count is
+not under the maximum, ask with `ia/display-buffer-action-choose-window'.
+BUFFER and ALIST are passed to whichever of the two displays it."
+  (or (and (ia/window-split-p)
+           (display-buffer-pop-up-window buffer alist))
+      (ia/display-buffer-action-choose-window buffer alist)))
 
 (defun ia/display-buffer-action--display (buffer alist)
   "Display BUFFER by the mode's rule, unless ALIST names a place for it.
@@ -182,8 +164,9 @@ list, matching every buffer an earlier entry does not take.  Priority is
 list order: a popup manager's rule takes precedence for its buffers when
 that manager's mode is enabled after this one, since its entry is then
 consed above.  The entry's function displays a buffer in a window that
-already displays it or in the selected window, and in a window chosen
-with `ace-window' when neither can take it, by the action functions
+already displays it or in the selected window, then splits a new window
+when `ia/window-split-p' says a split is preferred, and otherwise asks
+for a window with `ace-window', by the action functions
 `ia/display-buffer-action-functions' lists in order.  A request whose
 alist names a place for the buffer -- a window, a direction, a side, a
 slot, a tab or a frame -- is left to the caller's own action functions,
