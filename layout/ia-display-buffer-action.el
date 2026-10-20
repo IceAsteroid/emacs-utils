@@ -24,6 +24,7 @@
 ;; a tab or a frame -- is left to the caller's own action functions.
 
 (require 'cl-lib)
+(require 'ace-window)
 (require 'tab-bar)
 (require 'ia-window-utility)
 
@@ -173,20 +174,53 @@ ALIST."
           (tab-bar-change-tab-group group)))
       'tab)))
 
+(defun ia/display-buffer-action--split-actions ()
+  "Return the `aw-dispatch-alist' entries that split a window.
+The keys and descriptions are the user's, so a rebound split key is
+shown as it is bound.  Actions that delete, swap or otherwise change
+another window are left out: this question only chooses where to display
+a buffer."
+  (cl-remove-if-not
+   (lambda (action)
+     (memq (nth 1 action)
+           '(aw-split-window-vert aw-split-window-horz aw-split-window-fair)))
+   aw-dispatch-alist))
+
+(defun ia/display-buffer-action--split-help (actions)
+  "Return ACTIONS with their keys and descriptions, one per line.
+The format is the one `aw-show-dispatch-help' uses; that command ends by
+calling `ace-window', so its text is made here from the same alist."
+  (mapconcat
+   (lambda (action)
+     (cl-destructuring-bind (key function &optional description) action
+       (format "%s: %s"
+               (propertize (char-to-string key) 'face 'aw-key-face)
+               (or description function))))
+   actions
+   "\n"))
+
 (defun ia/display-buffer-action--choose-tab-window ()
   "Ask for a window of the selected frame with `aw-select'.
-The window labels are shown for two or more windows, and the split
-dispatch keys of `aw-dispatch-alist' split the chosen window and return
-the new one.  With one window the key is read too, so a split is still
-possible; any other key uses that window.  Ask again while the chosen
-window cannot display a buffer.  Return the window, or nil."
-  (when (= (length (window-list nil 'no-minibuf)) 1)
-    (message "Split with ?v, ?b or ?F; any other key uses this window"))
-  (let ((aw-scope 'frame)
-        (aw-ignore-current nil)
-        (aw-dispatch-when-more-than 0)
-        (aw-dispatch-always t)
-        done win)
+With two or more windows the labels are shown and the actions of
+`aw-dispatch-alist' are the user's, so the split keys are the ones the
+user bound.  With one window only the split entries are offered, their
+help is shown with the user's keys before the key is read, and any other
+key uses that window.  Ask again while the chosen window cannot display
+a buffer.  Return the window, or nil."
+  (let* ((one (null (cdr (window-list nil 'no-minibuf))))
+         (split-actions (and one (ia/display-buffer-action--split-actions)))
+         (aw-dispatch-alist (if one split-actions aw-dispatch-alist))
+         (aw-scope 'frame)
+         (aw-ignore-current nil)
+         (aw-dispatch-when-more-than 0)
+         (aw-dispatch-always t)
+         done win)
+    (when one
+      (message "%s"
+               (if split-actions
+                   (format "%s\nAny other key uses this window"
+                           (ia/display-buffer-action--split-help split-actions))
+                 "Any other key uses this window")))
     (while (and (not done)
                 (setq win (aw-select "Display buffer in window"))
                 (window-live-p win))
