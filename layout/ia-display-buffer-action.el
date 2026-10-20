@@ -10,7 +10,9 @@
 ;; buffer the selected window cannot display is displayed in a new window
 ;; when `ia/window-split-p' says a split is preferred, else in a window
 ;; the user chooses with `ace-window' -- choosing again while the chosen
-;; window is one that cannot display it either.
+;; window is one that cannot display it either.  A call that asks for a
+;; tab or a frame is asked which one, or a new one, and the same rule then
+;; displays the buffer there.
 ;;
 ;; The mode conses one `display-buffer-alist' entry at the front of the
 ;; list, matched by every buffer an earlier entry does not take.  Priority
@@ -21,6 +23,7 @@
 ;; a tab or a frame -- is left to the caller's own action functions.
 
 (require 'cl-lib)
+(require 'tab-bar)
 (require 'ia-window-utility)
 
 ;;; Code:
@@ -64,27 +67,155 @@ An action function can be added, dropped or reordered here: putting
 `display-buffer-same-window' first gives a buffer that another window
 already displays a second window, and dropping
 `ia/display-buffer-action-split-or-ask' removes the split and the
-question.  A request whose alist names a place for the buffer is left to
-the caller's own action functions before any function here is tried."
+question.  A request whose alist names a place for the buffer -- a
+window, a direction, a side, a slot, or a child frame -- is left to the
+caller's own action functions before any function here is tried; a call
+that asks for a tab or a frame is asked which one first, and the
+functions here then display the buffer there."
   :type '(choice (function :tag "One action function")
                  (repeat :tag "Action functions" function))
   :group 'ia-display-buffer-action)
 
-(defun ia/display-buffer-action-control-p (_buffer _alist)
+(defvar ia/display-buffer-action--action nil
+  "The ACTION argument of the `display-buffer' call being decided.
+The condition of the mode's entry records it, because `buffer-match-p'
+passes the ACTION to the condition and the action functions receive only
+the merged alist.")
+
+(defun ia/display-buffer-action-control-p (_buffer action)
   "Match every buffer an earlier `display-buffer-alist' entry does not take.
 This is the condition of the entry `ia/display-buffer-action-mode'
 installs, so the mode's function is tried after column-popup's entry and
 before the caller's ACTION argument, the special action,
-`display-buffer-base-action' and the fallback action."
+`display-buffer-base-action' and the fallback action.  Record ACTION for
+`ia/display-buffer-action--target'."
+  (setq ia/display-buffer-action--action action)
   t)
+
+(defun ia/display-buffer-action--functions (action)
+  "Return the action functions ACTION names, as a list."
+  (let ((functions (car-safe action)))
+    (cond ((functionp functions) (list functions))
+          ((listp functions) functions))))
+
+(defun ia/display-buffer-action--target (alist)
+  "Return `tab', `frame' or nil for the display ALIST and its ACTION.
+A tab is asked for through `tab-name' or `tab-group', or through
+`display-buffer-in-tab' or `display-buffer-in-new-tab' in the ACTION.  A
+frame is asked for through `pop-up-frames', or through
+`display-buffer-pop-up-frame' or `display-buffer-use-some-frame' in the
+ACTION.  A child frame named by `parent-frame' is left to the caller."
+  (let ((functions (ia/display-buffer-action--functions
+                    ia/display-buffer-action--action)))
+    (cond
+     ((or (assq 'tab-name alist)
+          (assq 'tab-group alist)
+          (memq 'display-buffer-in-tab functions)
+          (memq 'display-buffer-in-new-tab functions))
+      'tab)
+     ((or (assq 'pop-up-frames alist)
+          (memq 'display-buffer-pop-up-frame functions)
+          (memq 'display-buffer-use-some-frame functions))
+      'frame))))
+
+(defun ia/display-buffer-action--run (buffer alist)
+  "Display BUFFER by the functions `ia/display-buffer-action-functions' lists.
+ALIST is passed to each function.  Return the first window they display,
+or nil."
+  (let ((functions ia/display-buffer-action-functions))
+    (unless (listp functions)
+      (setq functions (list functions)))
+    (cl-some (lambda (function) (funcall function buffer alist))
+             functions)))
+
+(defun ia/display-buffer-action--tab (buffer alist)
+  "Display BUFFER in a tab by the mode's action functions.
+The `tab-name' entry names the tab; a function there is called with
+BUFFER and ALIST.  Without a name, read one, where an empty name makes a
+new tab.  An existing name selects that tab; a new name makes a tab with
+that name.  `tab-group' names the group of a new tab.  Return the window
+the action functions display, or nil in batch or while the minibuffer is
+active."
+  (when (and (not noninteractive)
+             (not (active-minibuffer-window)))
+    (let* ((name (alist-get 'tab-name alist))
+           (name (if (functionp name) (funcall name buffer alist) name))
+           (name (or name
+                     (completing-read
+                      "Tab (empty for a new tab): "
+                      (mapcar (lambda (tab) (alist-get 'name tab))
+                              (tab-bar-tabs))
+                      nil nil)))
+           (index (and (not (string-empty-p name))
+                       (cl-position name (tab-bar-tabs)
+                                    :key (lambda (tab) (alist-get 'name tab))
+                                    :test #'equal))))
+      (if index
+          (tab-bar-select-tab (1+ index))
+        (tab-bar-new-tab)
+        (unless (string-empty-p name)
+          (tab-bar-rename-tab name))
+        (let ((group (alist-get 'tab-group alist)))
+          (when (functionp group)
+            (setq group (funcall group buffer alist)))
+          (when group
+            (tab-bar-change-tab-group group))))
+      (ia/display-buffer-action--run buffer alist))))
+
+(defun ia/display-buffer-action--frames (alist)
+  "Return the live visible frames a frame question can offer.
+A `frame-predicate' entry in ALIST filters them, as it does for
+`display-buffer-use-some-frame'."
+  (let ((frames
+         (cl-remove-if-not
+          (lambda (frame)
+            (and (frame-live-p frame)
+                 (frame-visible-p frame)
+                 (not (eq (frame-parameter frame 'minibuffer) 'only))))
+          (frame-list)))
+        (predicate (alist-get 'frame-predicate alist)))
+    (if (functionp predicate)
+        (cl-remove-if-not predicate frames)
+      frames)))
+
+(defun ia/display-buffer-action--frame (buffer alist)
+  "Display BUFFER in a frame by the mode's action functions.
+Read a frame title; an empty title makes a new frame through
+`display-buffer-pop-up-frame', which keeps the `pop-up-frame-parameters'
+of ALIST.  A title that names a frame selects that frame, then the action
+functions display BUFFER in it, with the `inhibit-switch-frame' of ALIST
+keeping the frame from being raised.  Return the window, or nil in batch
+or while the minibuffer is active."
+  (when (and (not noninteractive)
+             (not (active-minibuffer-window)))
+    (let* ((frames (ia/display-buffer-action--frames alist))
+           (name (completing-read
+                  "Frame (empty for a new frame): "
+                  (delq nil (mapcar (lambda (frame)
+                                      (frame-parameter frame 'name))
+                                    frames))
+                  nil nil))
+           (frame (and (not (string-empty-p name))
+                       (cl-find name frames
+                                :key (lambda (frame)
+                                       (frame-parameter frame 'name))
+                                :test #'equal))))
+      (if frame
+          (progn
+            (if (alist-get 'inhibit-switch-frame alist)
+                (select-frame frame)
+              (select-frame-set-input-focus frame))
+            (ia/display-buffer-action--run buffer alist))
+        (display-buffer-pop-up-frame buffer alist)))))
 
 (defun ia/display-buffer-action--placed-p (alist)
   "Return non-nil if ALIST names a place for the buffer.
-A window, a direction, a side, a slot, a tab or a frame named in ALIST is
-a deliberate placement, left to the caller's own action functions."
+A window, a direction, a side, a slot, or a child frame named in ALIST is
+a deliberate placement, left to the caller's own action functions.  A tab
+or a frame that is not a child frame is asked about instead."
   (cl-some (lambda (key) (assq key alist))
-           '(window direction side slot tab-name tab-group
-             parent-frame child-frame-parameters pop-up-frames)))
+           '(window direction side slot
+             parent-frame child-frame-parameters)))
 
 (defun ia/display-buffer-action-choose-window (buffer alist)
   "Display BUFFER in a window chosen with `ace-window'.
@@ -123,18 +254,18 @@ BUFFER and ALIST are passed to whichever of the two displays it."
       (ia/display-buffer-action-choose-window buffer alist)))
 
 (defun ia/display-buffer-action--display (buffer alist)
-  "Display BUFFER by the mode's rule, unless ALIST names a place for it.
-ALIST is the action alist of the `display-buffer' call.  Decline
-\(return nil) when it names a window, a direction, a side, a slot, a tab
-or a frame, so the caller's own action functions decide; otherwise call
-the functions of `ia/display-buffer-action-functions' in order and return
-the first window they display."
-  (unless (ia/display-buffer-action--placed-p alist)
-    (let ((functions ia/display-buffer-action-functions))
-      (unless (listp functions)
-        (setq functions (list functions)))
-      (cl-some (lambda (function) (funcall function buffer alist))
-               functions))))
+  "Display BUFFER by the mode's rule.
+When the call asks for a tab or a frame, ask which one, or a new one, and
+display BUFFER there by the action functions.  Otherwise, unless ALIST
+names a place for the buffer, call the functions of
+`ia/display-buffer-action-functions' in order and return the first window
+they display."
+  (pcase (ia/display-buffer-action--target alist)
+    ('tab (ia/display-buffer-action--tab buffer alist))
+    ('frame (ia/display-buffer-action--frame buffer alist))
+    (_
+     (unless (ia/display-buffer-action--placed-p alist)
+       (ia/display-buffer-action--run buffer alist)))))
 
 (defun ia/display-buffer-action--rule ()
   "Return the entry `ia/display-buffer-action-mode' installs."
@@ -167,10 +298,13 @@ consed above.  The entry's function displays a buffer in a window that
 already displays it or in the selected window, then splits a new window
 when `ia/window-split-p' says a split is preferred, and otherwise asks
 for a window with `ace-window', by the action functions
-`ia/display-buffer-action-functions' lists in order.  A request whose
-alist names a place for the buffer -- a window, a direction, a side, a
-slot, a tab or a frame -- is left to the caller's own action functions,
-and `display-buffer-overriding-action' is consulted before the entry.
+`ia/display-buffer-action-functions' lists in order.  A call that asks
+for a tab or a frame -- through `tab-name', `tab-group',
+`pop-up-frames', or a tab or frame action function in its ACTION -- is
+asked which one, or a new one, and the same functions display the buffer
+there.  A request whose alist names a window, a direction, a side, a
+slot, or a child frame is left to the caller's own action functions, and
+`display-buffer-overriding-action' is consulted before the entry.
 When disabled, remove that entry."
   :global t
   :group 'ia-display-buffer-action
