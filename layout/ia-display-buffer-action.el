@@ -27,6 +27,7 @@
 (require 'ace-window)
 (require 'tab-bar)
 (require 'ia-window-utility)
+(require 'ia-tab-bar-modified)
 
 ;;; Code:
 
@@ -132,20 +133,13 @@ or nil."
 
 (defun ia/display-buffer-action--read-tab-name (buffer alist)
   "Read the name of a tab for BUFFER, using ALIST's `tab-name' first.
-A `tab-name' function is called with BUFFER and ALIST.  Otherwise use
-`ia/tab-bar-modified-read-tab-name' when its package is loaded, and a
-plain `completing-read' over the tab names when it is not.  An empty
-name is returned as such."
+A `tab-name' function is called with BUFFER and ALIST.  Otherwise read
+a name with `ia/tab-bar-modified-read-tab-name', where an empty name is
+returned as such."
   (let ((name (alist-get 'tab-name alist)))
     (cond ((functionp name) (funcall name buffer alist))
           (name name)
-          ((fboundp 'ia/tab-bar-modified-read-tab-name)
-           (ia/tab-bar-modified-read-tab-name ""))
-          (t
-           (completing-read
-            "Tab (empty for a new tab): "
-            (mapcar (lambda (tab) (alist-get 'name tab)) (tab-bar-tabs))
-            nil nil)))))
+          (t (ia/tab-bar-modified-read-tab-name "")))))
 
 (defun ia/display-buffer-action--select-tab (buffer alist name)
   "Select the tab NAME for BUFFER, or make a new tab with that name.
