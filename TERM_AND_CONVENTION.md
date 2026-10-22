@@ -127,6 +127,10 @@ behavior, follow these rules.
   the utilities should know; the entry names the change, not a commit
   hash, because a rewrite changes hashes.  The commit message remains the
   atomic record of its change.
+- A changelog entry names the file by its path relative to the
+  repository root, and the public command or option it adds or changes.
+  A leading slash is a filesystem absolute path and is not used.  The
+  commit message carries the detail.
 - A new coding or documentation standard is a forward fix: update the
   rule file and add a `Doc:` entry to `CHANGELOG.md`; do not rewrite past
   commits for the new standard.
