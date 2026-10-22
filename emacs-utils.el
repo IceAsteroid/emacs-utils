@@ -3,7 +3,7 @@
 ;; Author: IceAstroid
 ;; Homepage: https://github.com/IceAsteroid/emacs-utils
 ;; Version: 0.0.0
-;; Package-Requires: ((emacs "31.1") (ace-window "0") (avy "0") (consult "0"))
+;; Package-Requires: ((emacs "31.1") (ace-window "0") (consult "0"))
 
 ;;; Commentary:
 ;; 
