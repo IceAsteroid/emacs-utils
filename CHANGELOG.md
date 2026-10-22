@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add: `workaround/ia-fix-gt-treesit-hang-82.el`, the workaround for
+  the gt.el tree-sitter hang in `gt-forward-thing'.
 - Add: `layout/ia-popper-modified.el`, which displays a popper window
   at the bottom of the selected window's column, anchors a popper
   displayed from a side window to a main-area window chosen by
