@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Add: `org/ia-org-utility.el`, which defines
+  `ia/org-redisplay-inline-images-at-block`, refreshing the inline
+  images of the source block at point, or of the block in
+  `org-babel-current-src-block-location', and
+  `ia/org-remove-blank-line-before-results-mode`, removing the blank
+  line that `org-babel--insert-results-keyword' inserts before a
+  results block.
 - Add: the utility collection under `appearance/`, `buffer/`,
   `completion/`, `core/`, `doc-lookup/`, `info-inbox/`, `layout/`,
   `org/` and `workaround/`, and `emacs-utils.el`, the entry point that
