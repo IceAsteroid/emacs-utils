@@ -109,7 +109,7 @@ existing name selects that tab.  The buffer is then displayed there by
 
 A display made while the tab step runs -- `tab-bar-new-tab-choice' may
 display a buffer of its own -- is left to the other display rules, so it
-does not ask the tab question again."
+does not show the tab prompt again."
   (interactive)
   (display-buffer-override-next-command
    (lambda (buffer alist)

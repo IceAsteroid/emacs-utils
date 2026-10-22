@@ -70,7 +70,7 @@ An action function can be added, dropped or reordered here: putting
 `display-buffer-same-window' first gives a buffer that another window
 already displays a second window, and dropping
 `ia/display-buffer-action-split-or-ask' removes the split and the
-question.  A request whose alist names a place for the buffer -- a
+prompt.  A request whose alist names a place for the buffer -- a
 window, a direction, a side, a slot, or a child frame -- is left to the
 caller's own action functions before any function here is tried; a call
 that asks for a tab or a frame is asked which one first, and the window
@@ -172,7 +172,7 @@ ALIST."
   "Return the `aw-dispatch-alist' entries that split a window.
 The keys and descriptions are the user's, so a rebound split key is
 shown as it is bound.  Actions that delete, swap or otherwise change
-another window are left out: this question only chooses where to display
+another window are left out: this prompt only chooses where to display
 a buffer."
   (cl-remove-if-not
    (lambda (action)
@@ -282,7 +282,7 @@ window and the tab's type as a cons, `reuse' for an existing tab and
             (cons (car result) type)))))))
 
 (defun ia/display-buffer-action--frames (alist)
-  "Return the live visible frames a frame question can offer.
+  "Return the live visible frames the frame prompt can offer.
 A `frame-predicate' entry in ALIST filters them, as it does for
 `display-buffer-use-some-frame'."
   (let ((frames
