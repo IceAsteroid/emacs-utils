@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add: `workaround/ia-fix-org-block-regexp-overflow.el`, the workaround
+  for the Org 9.7 block regexp stack overflow.
 - Add: `workaround/ia-fix-gt-treesit-hang-82.el`, the workaround for
   the gt.el tree-sitter hang in `gt-forward-thing'.
 - Add: `layout/ia-popper-modified.el`, which displays a popper window
