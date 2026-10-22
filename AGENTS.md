@@ -34,7 +34,9 @@ Run `make check`: it byte-compiles the five layout files in a temporary
 directory and runs the tests under `test/`, and the `.elc` never lands
 beside the source.  `make checkdoc` reports the docstring findings; the
 two `C-g` literals in the action and the window utility are the
-maintainer's choice, so checkdoc prints them on every run.
+maintainer's choice, so checkdoc prints them on every run.  GitHub
+Actions runs both commands on every push and pull request; the workflow
+is `.github/workflows/test.yml`.
 
 - The tests are batch Emacs Lisp files under `test/`, mirroring the
   source directories (`test/layout/` for the layout files), each exiting
