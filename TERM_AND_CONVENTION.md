@@ -131,6 +131,11 @@ behavior, follow these rules.
   repository root, and the public command or option it adds or changes.
   A leading slash is a filesystem absolute path and is not used.  The
   commit message carries the detail.
+- In a changelog entry or an `Add:` body paragraph, a path directly
+  after `Add:` means the change adds that file.  A change to a file
+  that already exists states the behavior, option or command after the
+  path, with `in` before it: `Add: in layout/ia-popper-modified.el,
+  the column-bottom popper display`.
 - A new coding or documentation standard is a forward fix: update the
   rule file and add a `Doc:` entry to `CHANGELOG.md`; do not rewrite past
   commits for the new standard.

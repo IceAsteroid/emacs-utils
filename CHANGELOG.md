@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Doc: `TERM_AND_CONVENTION.md`: a path directly after `Add:` means
+  the change adds that file; a change to a file that already exists
+  states the behavior, option or command after the path, with `in`
+  before it.
 - Doc: `workaround/README.md`, the naming and identifier conventions
   for the workaround files.
 - Add: `workaround/ia-fix-window-state-put-73627.el`, the workaround for
@@ -10,11 +14,9 @@
   for the Org 9.7 block regexp stack overflow.
 - Add: `workaround/ia-fix-gt-treesit-hang-82.el`, the workaround for
   the gt.el tree-sitter hang in `gt-forward-thing'.
-- Add: `layout/ia-popper-modified.el`, which displays a popper window
-  at the bottom of the selected window's column, anchors a popper
-  displayed from a side window to a main-area window chosen by
-  `ia/popper-side-window-target', and gives `popper-toggle' a
-  three-state cycle.
+- Add: in `layout/ia-popper-modified.el`, the column-bottom popper
+  display, the option `ia/popper-side-window-target` and the
+  three-state `popper-toggle` cycle.
 - Add: `org/ia-org-utility.el`, which defines
   `ia/org-redisplay-inline-images-at-block`, refreshing the inline
   images of the source block at point, or of the block in
