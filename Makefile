@@ -15,9 +15,9 @@ FILES = layout/ia-display-buffer-action.el \
         layout/ia-tab-bar-modified.el \
         layout/ia-tab-bar-modified-consult.el
 
-TESTS = test/ia-display-ask-test.el \
-        test/ia-order-test.el \
-        test/ia-tab-frame-test.el
+TESTS = test/layout/ia-display-ask-test.el \
+        test/layout/ia-order-test.el \
+        test/layout/ia-tab-frame-test.el
 
 .PHONY: all check check-deps compile checkdoc test
 

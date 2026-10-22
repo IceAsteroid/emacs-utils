@@ -36,7 +36,8 @@ beside the source.  `make checkdoc` reports the docstring findings; the
 two `C-g` literals in the action and the window utility are the
 maintainer's choice, so checkdoc prints them on every run.
 
-- The tests are batch Emacs Lisp files under `test/`, each exiting
+- The tests are batch Emacs Lisp files under `test/`, mirroring the
+  source directories (`test/layout/` for the layout files), each exiting
   non-zero when a check fails.
 - The Makefile finds ace-window, avy and consult under `ELPA`, which
   defaults to `$(HOME)/.emacs.d/elpa`; override `ELPA` or `EMACS` when
