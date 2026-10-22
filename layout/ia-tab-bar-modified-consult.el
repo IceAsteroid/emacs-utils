@@ -16,10 +16,11 @@
 
 (defun ia/tab-bar-modified--purge-child-frames ()
   "Forcefully delete ALL child frames (visible or invisible).
-[TRAP WARNING]: Wayland/PGTK Deadlock Prevention.
-When `current-window-configuration` is called, it captures invisible Corfu
-frames. Restoring that state during active minibuffer blocks deadlocks the
-PGTK display server. This aggressively sanitizes the environment first."
+[TRAP WARNING]: Wayland/PGTK Deadlock Prevention.  When
+`current-window-configuration` is called, it captures invisible Corfu
+frames.  Restoring that state during active minibuffer blocks deadlocks
+the PGTK display server.  This aggressively sanitizes the environment
+first."
   (dolist (frame (frame-list))
     (when (frame-parent frame)
       (delete-frame frame))))
@@ -35,7 +36,10 @@ PGTK display server. This aggressively sanitizes the environment first."
           (ignore-errors (window-resize mini delta)))))))
 
 (defun ia/tab-bar-modified--execute-switch (selected-key candidates)
-  "Execute tab switch or creation based on the SELECTED-KEY from the prompt."
+  "Execute the tab switch or creation selected by SELECTED-KEY.
+CANDIDATES is the alist from `ia/tab-bar-modified--get-candidates'; a
+matching entry's index selects its tab, and any other name makes a new
+tab with that name."
   (when (and selected-key (not (string= selected-key "")))
     (let* ((match (assoc-string selected-key candidates))
            (target-idx (nth 1 match))
@@ -49,7 +53,9 @@ PGTK display server. This aggressively sanitizes the environment first."
         (tab-bar-rename-tab target-name)))))
 
 (defun ia/tab-bar-modified--build-state (candidates orig-index orig-tabs orig-wc)
-  "Build a compiler-safe state closure for Consult previews."
+  "Build a state closure for Consult previews of CANDIDATES.
+ORIG-INDEX is the current tab's 1-based index, ORIG-TABS its tab list,
+and ORIG-WC the window configuration to restore when the preview ends."
   (lambda (action cand)
     (cond
      ((and (eq action 'preview) cand)
@@ -146,7 +152,9 @@ PGTK display server. This aggressively sanitizes the environment first."
          candidates)))))
 
 (defun ia-advice/tab-bar-rename-tab-around (orig-fun &optional name arg)
-  "Wrap `tab-bar-rename-tab` to provide rich history completion for tab names."
+  "Wrap `tab-bar-rename-tab` to provide rich history completion for tab names.
+ORIG-FUN is the original `tab-bar-rename-tab'; NAME and ARG are its
+arguments."
   (interactive
    (let* ((rich-cands (ia/tab-bar-modified--get-candidates t))
           (filtered-cands nil)

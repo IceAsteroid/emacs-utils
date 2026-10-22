@@ -21,7 +21,7 @@ Explicitly filters out active minibuffers and utility windows."
   (let ((frame-windows (window-list)))
     ;; Sort windows by their last interaction timestamp (newest first)
     (setq frame-windows (sort frame-windows
-                              (lambda (w1 w2) 
+                              (lambda (w1 w2)
                                 (> (window-use-time w1) (window-use-time w2)))))
     ;; Iteratively scan for the first genuine text/code editing workspace
     (cl-find-if (lambda (w)
@@ -31,8 +31,10 @@ Explicitly filters out active minibuffers and utility windows."
 
 (defun window-prefix-pivot-ad-display-buffer (orig-fun buffer &optional action)
   "Intercept `display-buffer' at the exact moment a window prefix executes.
-If a prefix rule is armed and executing from a utility popup, dynamically
-pivots focus to the true code workspace before the display logic runs."
+ORIG-FUN is the original `display-buffer'; BUFFER and ACTION are its
+arguments.  If a prefix rule is armed and executing from a utility popup,
+dynamically pivots focus to the true code workspace before the display
+logic runs."
   (if (and display-buffer-overriding-action
            (not (equal display-buffer-overriding-action '(nil . nil))) ; Ensure a prefix is actually armed
            (ia/window-cannot-display-p (selected-window)))
@@ -130,10 +132,10 @@ does not show the tab prompt again."
       (advice-add 'display-buffer :around #'window-prefix-pivot-ad-display-buffer)
     (advice-remove 'display-buffer #'window-prefix-pivot-ad-display-buffer)))
 
-(provide 'ia-window-prefix-pivot)
-
 ;; Local Variables:
 ;; checkdoc-allow-quoting-nil-and-t: t
 ;; End:
 
-;;; window-prefix-pivot.el ends here
+(provide 'ia-window-prefix-pivot)
+
+;;; ia-window-prefix-pivot.el ends here

@@ -1,16 +1,18 @@
 ;;; ia-window-utility.el --- Small snippets for window management  -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;; 
+;;
+
+;;; Code:
 
 (require 'ace-window)
 (require 'cl-lib)
 
 (defvar ia/other-window-mru-args '(nil 'dedicated 'not-selected 'no-other)
-  "A list of arguments in the order that are passed to `get-mru-window' in `ia/other-window-mru'.")
+  "The arguments `ia/other-window-mru' passes to `get-mru-window', in order.")
 
 (defun ia/other-window-mru ()
-  "Cycle on most recently used live windows. Arguments refer to `get-mru-window’."
+  "Cycle on most recently used live windows.  Arguments refer to `get-mru-window’."
   (interactive)
   ;; Selecting windows with `select-window’ doesn’t trigger to run
   ;; `mouse-leave-buffer-hook’, unlike `other-window’, which is recorded by
