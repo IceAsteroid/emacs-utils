@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Doc: `workaround/README.md`, the naming and identifier conventions
+  for the workaround files.
 - Add: `workaround/ia-fix-window-state-put-73627.el`, the workaround for
   the `window-state-put' recursion with a side window.
 - Add: `workaround/ia-fix-org-block-regexp-overflow.el`, the workaround
