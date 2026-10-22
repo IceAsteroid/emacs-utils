@@ -30,26 +30,28 @@ never a directory; leave a file you were not asked to change alone.
 
 ## Verifying work
 
-There is no build, lint or test target in the repository.  Write the
-checks under `/tmp`; never leave an `.elc` beside the source.
+Run `make check`: it byte-compiles the five layout files in a temporary
+directory and runs the tests under `test/`, and the `.elc` never lands
+beside the source.  `make checkdoc` reports the docstring findings; the
+two `C-g` literals in the action and the window utility are the
+maintainer's choice, so checkdoc prints them on every run.
 
-- Byte-compile a copy: copy the files to `/tmp` and run
-  `emacs -Q --batch -L /tmp -L <deps> -f batch-byte-compile FILE`; the
-  `.elc` appearing is the signal, and a clean compile prints nothing.
-- Run the batch harnesses with `emacs -Q --batch -l FILE > OUT 2>&1`;
-  redirect explicitly, since batch output piped into `head` can come
-  back empty.
-- Run checkdoc on the changed files.
+- The tests are batch Emacs Lisp files under `test/`, each exiting
+  non-zero when a check fails.
+- The Makefile finds ace-window, avy and consult under `ELPA`, which
+  defaults to `$(HOME)/.emacs.d/elpa`; override `ELPA` or `EMACS` when
+  they live elsewhere.
+- Docstrings wrap at 80 columns.  A `defvar` or `defcustom` docstring
+  longer than 80 columns makes the byte-compiler warn; checkdoc reports
+  the rest.
+- The tested Emacs is 31.1; the minimum version is not established.
+  The tests run on Linux; no other platform is tested.
 - Interactive prompts need a pty.  Reproduce with `emacs -Q` and a
   minimal file under `/tmp`.  Never load the user's init or desktop: it
   restores private buffers, and keystrokes can reach them.
-- Cite the file and line for a mechanism you read.  Mark a statement
-  you have not checked as unverified.  Report what was verified and
-  what was not.
-
-The checks are scripts outside the repository, usually under `/tmp`.
-The current ones for the display work are `ia-display-ask-test.el`,
-`ia-order-test.el` and `ia-tab-frame-test.el`.
+- Cite the file and line for a mechanism you read.  Mark a statement you
+  have not checked as unverified.  Report what was verified and what was
+  not.
 
 ## Commits
 

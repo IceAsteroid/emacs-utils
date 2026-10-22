@@ -108,12 +108,16 @@ behavior, follow these rules.
   its own commit; unrelated changes are separate commits even when they
   touch one file.
 - Subject type prefixes: `feat:` for a new behavior or option, `fix:`
-  for a correction, `refactor:` for a change that keeps behavior, and
-  `docs:` for documentation only.  The subject is a present-tense
-  phrase after the prefix.
+  for a correction, `refactor:` for a change that keeps behavior,
+  `docs:` for documentation only, and `test:` for a change that only
+  adds or changes tests.  The subject is a present-tense phrase after
+  the prefix.
 - Wrap commit-message lines at about 72 columns.  Write the message to a
   file and pass it with `git commit -F`; check the result with
   `git log -1 --format=%B | awk 'length > 72'`.
+- Wrap docstrings at 80 columns.  A `defvar` or `defcustom` docstring
+  longer than 80 columns makes the byte-compiler warn; checkdoc reports
+  the rest.
 - Do not rewrite an existing commit.  A message that violates a rule
   written after it keeps its form; a message that is wrong under a rule
   already in force is reported to the maintainer, and a rewrite waits
