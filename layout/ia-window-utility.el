@@ -17,7 +17,7 @@
   ;; "auto-select-window" feature that runs hooks like
   ;; `mouse-leave-buffer-hook’.
   (run-hooks 'mouse-leave-buffer-hook)
-  (when-let ((mru-window (apply 'get-mru-window ia/other-window-mru-args)))
+  (when-let* ((mru-window (apply 'get-mru-window ia/other-window-mru-args)))
     (select-window mru-window nil)
     ;; Always return nil
     nil))
