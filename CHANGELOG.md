@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Doc: `CHANGELOG.md`: the `Add:` entries for files that already exist
+  use `in`; the quoted symbols use the Markdown form.
 - Doc: `TERM_AND_CONVENTION.md`: a path directly after `Add:` means
   the change adds that file; a change to a file that already exists
   states the behavior, option or command after the path, with `in`
@@ -9,20 +11,20 @@
 - Doc: `workaround/README.md`, the naming and identifier conventions
   for the workaround files.
 - Add: `workaround/ia-fix-window-state-put-73627.el`, the workaround for
-  the `window-state-put' recursion with a side window.
+  the `window-state-put` recursion with a side window.
 - Add: `workaround/ia-fix-org-block-regexp-overflow.el`, the workaround
   for the Org 9.7 block regexp stack overflow.
 - Add: `workaround/ia-fix-gt-treesit-hang-82.el`, the workaround for
-  the gt.el tree-sitter hang in `gt-forward-thing'.
+  the gt.el tree-sitter hang in `gt-forward-thing`.
 - Add: in `layout/ia-popper-modified.el`, the column-bottom popper
   display, the option `ia/popper-side-window-target` and the
   three-state `popper-toggle` cycle.
-- Add: `org/ia-org-utility.el`, which defines
+- Add: in `org/ia-org-utility.el`,
   `ia/org-redisplay-inline-images-at-block`, refreshing the inline
   images of the source block at point, or of the block in
-  `org-babel-current-src-block-location', and
+  `org-babel-current-src-block-location`, and
   `ia/org-remove-blank-line-before-results-mode`, removing the blank
-  line that `org-babel--insert-results-keyword' inserts before a
+  line that `org-babel--insert-results-keyword` inserts before a
   results block.
 - Add: the utility collection under `appearance/`, `buffer/`,
   `completion/`, `core/`, `doc-lookup/`, `info-inbox/`, `layout/`,
@@ -33,14 +35,14 @@
   a buffer is displayed in a window that already shows it, else in the
   selected window, else in a window chosen with `ace-window`, with the
   split rule `ia/window-split-p` and the shared window prompt.
-- Add: `layout/ia-display-buffer-action.el` and
+- Add: in `layout/ia-display-buffer-action.el` and
   `layout/ia-tab-bar-modified.el`, the tab and frame prompts, with the
   tab history and candidates, the chosen window prompt and the frame's
   tab prompt.
-- Add: `layout/ia-window-prefix-pivot.el`, which defines
+- Add: in `layout/ia-window-prefix-pivot.el`,
   `ia/other-tab-prefix`: it asks for the tab of the next command's
   buffer, or a new one, and displays the buffer there.
-- Add: `layout/ia-window-prefix-pivot.el`, which adds
+- Add: in `layout/ia-window-prefix-pivot.el`,
   `ace-other-window-select`, deciding the selected window after the
   prefix displays the buffer.
 - Fix: `layout/ia-window-utility.el` and
