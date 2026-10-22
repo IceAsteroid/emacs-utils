@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add: `layout/ia-popper-modified.el`, which displays a popper window
+  at the bottom of the selected window's column, anchors a popper
+  displayed from a side window to a main-area window chosen by
+  `ia/popper-side-window-target', and gives `popper-toggle' a
+  three-state cycle.
 - Add: `org/ia-org-utility.el`, which defines
   `ia/org-redisplay-inline-images-at-block`, refreshing the inline
   images of the source block at point, or of the block in
