@@ -31,19 +31,20 @@ never a directory; leave a file you were not asked to change alone.
 ## Verifying work
 
 Run `make check`: it byte-compiles the five layout files in a temporary
-directory and runs the tests under `test/`, and the `.elc` never lands
-beside the source.  `make checkdoc` reports the docstring findings; the
-two `C-g` literals in the action and the window utility are the
-maintainer's choice, so checkdoc prints them on every run.  GitHub
-Actions runs both commands on every push and pull request; the workflow
-is `.github/workflows/test.yml`.
+directory and runs the tests under `test/` with `eldev test`, and the
+`.elc` never lands beside the source.  `make checkdoc` reports the
+docstring findings; the two `C-g` literals in the action and the window
+utility are the maintainer's choice, so checkdoc prints them on every
+run.  GitHub Actions runs both commands on every push and pull request;
+the workflow is `.github/workflows/test.yml` and it installs Eldev.
 
 - The tests are buttercup files under `test/`, mirroring the source
-  directories (`test/layout/` for the layout files); `make test` runs
-  them with `buttercup-run-discover`.
-- The Makefile finds ace-window, avy and consult under `ELPA`, which
-  defaults to `$(HOME)/.emacs.d/elpa`; override `ELPA` or `EMACS` when
-  they live elsewhere.
+  directories (`test/layout/` for the layout files).  `make test` runs
+  `eldev test`; the `Eldev` file adds `layout` as a testing root and
+  declares the test dependencies.
+- The Makefile finds ace-window, avy and consult under `ELPA` for the
+  compile and checkdoc; `eldev test` installs its own test dependencies
+  (ace-window, avy, consult, buttercup) into `.eldev`, which is ignored.
 - Docstrings wrap at 80 columns.  A `defvar` or `defcustom` docstring
   longer than 80 columns makes the byte-compiler warn; checkdoc reports
   the rest.

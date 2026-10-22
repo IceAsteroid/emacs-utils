@@ -12,9 +12,12 @@ jobs:
         with:
           version: '31.1'
 
+      - name: Install Eldev
+        run: curl -fsSL https://raw.github.com/emacs-eldev/eldev/master/webinstall/github-eldev | sh
+
       - name: Install dependencies
         run: |
-          emacs -Q --batch --eval "(progn (require 'package) (add-to-list 'package-archives '(\"melpa\" . \"https://melpa.org/packages/\") t) (package-initialize) (package-refresh-contents) (package-install 'ace-window) (package-install 'avy) (package-install 'consult) (package-install 'buttercup))"
+          emacs -Q --batch --eval "(progn (require 'package) (add-to-list 'package-archives '(\"melpa\" . \"https://melpa.org/packages/\") t) (package-initialize) (package-refresh-contents) (package-install 'ace-window) (package-install 'avy) (package-install 'consult))"
 
       - name: Check
         run: make check

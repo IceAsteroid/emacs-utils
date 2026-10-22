@@ -6,9 +6,8 @@ ELPA ?= $(HOME)/.emacs.d/elpa
 ACE_WINDOW := $(firstword $(wildcard $(ELPA)/ace-window-*))
 AVY := $(firstword $(wildcard $(ELPA)/avy-*))
 CONSULT := $(firstword $(wildcard $(ELPA)/consult-2*))
-BUTTERCUP := $(firstword $(wildcard $(ELPA)/buttercup-*))
 
-LOAD_PATH = -L . -L layout -L $(ACE_WINDOW) -L $(AVY) -L $(CONSULT)
+LOAD_PATH = -L layout -L $(ACE_WINDOW) -L $(AVY) -L $(CONSULT)
 
 FILES = layout/ia-display-buffer-action.el \
         layout/ia-window-prefix-pivot.el \
@@ -16,7 +15,7 @@ FILES = layout/ia-display-buffer-action.el \
         layout/ia-tab-bar-modified.el \
         layout/ia-tab-bar-modified-consult.el
 
-.PHONY: all check check-deps check-buttercup compile checkdoc test
+.PHONY: all check check-deps compile checkdoc test
 
 all: check
 
@@ -27,10 +26,6 @@ check-deps:
 		test -n "$$dir" || { \
 			echo "missing a dependency under $(ELPA)"; exit 1; }; \
 	done
-
-check-buttercup:
-	@test -n "$(BUTTERCUP)" || { \
-		echo "missing buttercup under $(ELPA)"; exit 1; }
 
 compile: check-deps
 	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
@@ -45,7 +40,5 @@ checkdoc: check-deps
 			--eval "(progn (require 'checkdoc) (checkdoc-file \"$$file\"))"; \
 	done
 
-test: check-deps check-buttercup
-	$(EMACS) -Q --batch --eval "(setq load-prefer-newer t)" \
-		$(LOAD_PATH) -L $(BUTTERCUP) -l buttercup \
-		-f buttercup-run-discover test/layout
+test:
+	eldev test
