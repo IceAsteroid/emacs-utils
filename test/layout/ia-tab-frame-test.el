@@ -3,6 +3,7 @@
 ;; ia/display-buffer-action.  Run: make test
 (require 'ia-display-buffer-action)
 (require 'ia-window-prefix-pivot)
+(require 'buttercup)
 
 (defvar nfail 0)
 (defmacro check (label form)
@@ -11,6 +12,9 @@
          (princ (format "ok   %s => %S\n" ,label val))
        (progn (setq nfail (1+ nfail))
               (princ (format "FAIL %s => %S\n" ,label val))))))
+
+(defun ia/tab-frame-checks ()
+  (setq nfail 0)
 
 (defvar w1) (defvar w2)
 (setq w1 (selected-window))
@@ -348,4 +352,8 @@
 
 (princ (if (zerop nfail) "\nALL PASSED\n"
          (format "\n%d CHECK(S) FAILED\n" nfail)))
-(kill-emacs (if (zerop nfail) 0 1))
+(expect nfail :to-be 0))
+
+(describe "ia tab and frame target"
+  (it "runs the tab and frame checks"
+    (ia/tab-frame-checks)))

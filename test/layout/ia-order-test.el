@@ -5,6 +5,7 @@
 ;; Run: make test
 (require 'man)
 (require 'ia-display-buffer-action)
+(require 'buttercup)
 
 (defvar nfail 0)
 (defmacro check (label form)
@@ -13,6 +14,9 @@
          (princ (format "ok   %s => %S\n" ,label val))
        (progn (setq nfail (1+ nfail))
               (princ (format "FAIL %s => %S\n" ,label val))))))
+
+(defun ia/order-checks ()
+  (setq nfail 0)
 
 (defvar w1) (defvar w2)
 (setq w1 (selected-window))
@@ -124,4 +128,8 @@
 
 (princ (if (zerop nfail) "\nALL PASSED\n"
          (format "\n%d CHECK(S) FAILED\n" nfail)))
-(kill-emacs (if (zerop nfail) 0 1))
+(expect nfail :to-be 0))
+
+(describe "ia display action ordering"
+  (it "runs the ordering checks"
+    (ia/order-checks)))

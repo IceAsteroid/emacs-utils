@@ -3,6 +3,7 @@
 ;; loop in ace-other-window-prefix.  Run: make test
 (require 'ia-display-buffer-action)
 (require 'ia-window-prefix-pivot)
+(require 'buttercup)
 
 (defvar nfail 0)
 (defmacro check (label form)
@@ -11,6 +12,9 @@
          (princ (format "ok   %s => %S\n" ,label val))
        (progn (setq nfail (1+ nfail))
               (princ (format "FAIL %s => %S\n" ,label val))))))
+
+(defun ia/display-ask-checks ()
+  (setq nfail 0)
 
 ;;; ---- the entry, the mode's install and its removal
 (check "mode off: no entry"
@@ -387,4 +391,8 @@
 
 (princ (if (zerop nfail) "\nALL PASSED\n"
          (format "\n%d CHECK(S) FAILED\n" nfail)))
-(kill-emacs (if (zerop nfail) 0 1))
+(expect nfail :to-be 0))
+
+(describe "ia display action"
+  (it "runs the display checks"
+    (ia/display-ask-checks)))
