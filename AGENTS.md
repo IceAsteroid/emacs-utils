@@ -25,6 +25,9 @@ the display work touches:
   the function that reads a tab name.
 - `layout/ia-tab-bar-modified-consult.el` — the consult integration.
 
+The repository-level incremental record is `CHANGELOG.md`; a change
+appends an entry to its `## Unreleased` section.
+
 The user's uncommitted files are not yours.  Stage explicit paths,
 never a directory; leave a file you were not asked to change alone.
 

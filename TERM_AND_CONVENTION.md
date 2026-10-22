@@ -122,6 +122,14 @@ behavior, follow these rules.
   written after it keeps its form; a message that is wrong under a rule
   already in force is reported to the maintainer, and a rewrite waits
   for the maintainer's word.
+- `CHANGELOG.md` is the repository-level incremental record.  Append an
+  entry at the top of its `## Unreleased` section for a change a user of
+  the utilities should know; the entry names the change, not a commit
+  hash, because a rewrite changes hashes.  The commit message remains the
+  atomic record of its change.
+- A new coding or documentation standard is a forward fix: update the
+  rule file and add a `Doc:` entry to `CHANGELOG.md`; do not rewrite past
+  commits for the new standard.
 - A term must be added to "Core terms" with the maintainer's agreement
   before it is used; a term that is dropped moves to "Terms not used"
   with its replacement.
