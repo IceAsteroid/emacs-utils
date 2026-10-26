@@ -13,9 +13,10 @@ A personal collection of Emacs Lisp libraries and command files, one
 file per feature.  The display action, pivot, window test, split
 options, window prompt and tab bar reader are in their own repository;
 the `ia/other-window-mru` command and the consult integration remain in
-`layout/`.  The consult integration requires the display package and
-sets `display-buffer-pivot-tab-bar-read-function` when its mode is
-enabled.
+`layout/`.  The consult integration consumes the display package's
+optional `display-buffer-pivot-tab-bar-consult` library, sets
+`display-buffer-pivot-tab-bar-read-function` to its reader when the mode
+is enabled, and calls its child-frame cleanup for the built-in overrides.
 `README.md` lists the directories; the `Makefile` comments state what
 `FILES` and `CHECK_FILES` hold.
 

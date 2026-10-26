@@ -8,39 +8,18 @@
 ;;; Commentary:
 ;; The consult integration, the tab-switch commands and the built-in
 ;; overrides for the tab bar.  The candidates, history, sort, annotations
-;; and the plain reader are in `display-buffer-pivot-tab-bar'.  The mode
-;; sets `display-buffer-pivot-tab-bar-read-function' so the display
-;; action's tab prompt uses the consult reader.
+;; and the consult reader are in `display-buffer-pivot-tab-bar' and its
+;; optional `display-buffer-pivot-tab-bar-consult' library.  The mode
+;; installs that library's reader; the overrides and the rename advice
+;; call its child-frame cleanup.
 
 (require 'cl-lib)
-(require 'consult)
-(require 'display-buffer-pivot-tab-bar) ; The tab bar reader from the display-buffer-pivot package.
+(require 'display-buffer-pivot-tab-bar-consult) ; The consult reader from the display-buffer-pivot package.
 
 ;; Pacify the compiler for dynamic overrides
 (defvar marginalia-annotators)
 
 ;;; Code:
-
-(defun ia/tab-bar-modified--purge-child-frames ()
-  "Forcefully delete ALL child frames (visible or invisible).
-[TRAP WARNING]: Wayland/PGTK Deadlock Prevention.  When
-`current-window-configuration` is called, it captures invisible Corfu
-frames.  Restoring that state during active minibuffer blocks deadlocks
-the PGTK display server.  This aggressively sanitizes the environment
-first."
-  (dolist (frame (frame-list))
-    (when (frame-parent frame)
-      (delete-frame frame))))
-
-(defun ia/tab-bar-modified--run-with-thrash-protection (callback)
-  "Execute CALLBACK while freezing the active minibuffer height."
-  (let* ((mini (active-minibuffer-window))
-         (h (and mini (window-height mini))))
-    (funcall callback)
-    (when (and mini (window-live-p mini) h)
-      (let ((delta (- h (window-height mini))))
-        (unless (zerop delta)
-          (ignore-errors (window-resize mini delta)))))))
 
 (defun ia/tab-bar-modified--execute-switch (selected-key candidates)
   "Execute the tab switch or creation selected by SELECTED-KEY.
@@ -59,69 +38,6 @@ tab with that name."
           (set-window-next-buffers (selected-window) nil))
         (tab-bar-rename-tab target-name)))))
 
-(defun ia/tab-bar-modified--build-state (candidates orig-index orig-tabs orig-wc)
-  "Build a state closure for Consult previews of CANDIDATES.
-ORIG-INDEX is the current tab's 1-based index, ORIG-TABS its tab list,
-and ORIG-WC the window configuration to restore when the preview ends."
-  (lambda (action cand)
-    (cond
-     ((and (eq action 'preview) cand)
-      (let* ((match (assoc-string cand candidates))
-             (target-idx (nth 1 match)))
-        (when target-idx
-          (ia/tab-bar-modified--run-with-thrash-protection
-           (lambda () (tab-bar-select-tab target-idx))))))
-
-     ((and (eq action 'preview) (not cand))
-      (ia/tab-bar-modified--run-with-thrash-protection
-       (lambda () (tab-bar-select-tab orig-index))))
-
-     ((eq action 'return)
-      (set-frame-parameter nil 'tabs orig-tabs)
-      (set-window-configuration orig-wc)
-      (tab-bar-select-tab orig-index)))))
-
-(defun ia/tab-bar-modified--consult-read (prompt candidates initial)
-  "Read a tab name from CANDIDATES with consult previews.
-PROMPT is the prompt string.  INITIAL is the default candidate; an
-empty string means a new tab.  Return the chosen name; an empty name
-means a new tab."
-  (ia/tab-bar-modified--purge-child-frames)
-  (let* ((orig-index (1+ (tab-bar--current-tab-index)))
-         (orig-tabs (copy-tree (frame-parameter nil 'tabs)))
-         (orig-wc (current-window-configuration))
-         (marginalia-annotators
-          (if display-buffer-pivot-tab-bar-disable-marginalia
-              nil
-            (bound-and-true-p marginalia-annotators)))
-         (history-delete-duplicates t)) ; Force native deduplication
-    (unwind-protect
-        (let ((completion-extra-properties
-               (list :category 'tab
-                     :display-sort-function
-                     (if display-buffer-pivot-tab-bar-sort-function
-                         (lambda (cands)
-                           (funcall display-buffer-pivot-tab-bar-sort-function
-                                    cands candidates))
-                       #'identity))))
-          (consult--read
-           candidates
-           :prompt prompt
-           :default initial
-           :category 'tab
-           :sort nil
-           :history (and display-buffer-pivot-tab-bar-enable-history
-                         'display-buffer-pivot-tab-bar--history)
-           :require-match nil
-           :annotate (if display-buffer-pivot-tab-bar-disable-marginalia
-                         (display-buffer-pivot-tab-bar--build-annotator
-                          candidates)
-                       nil)
-           :state (ia/tab-bar-modified--build-state
-                   candidates orig-index orig-tabs orig-wc)))
-      ;; Unconditional cleanup
-      (display-buffer-pivot-tab-bar--sanitize-history))))
-
 ;; --- Interactive Commands ---
 
 (defun ia/consult-tab-switch ()
@@ -138,14 +54,14 @@ means a new tab."
     (if (null candidates)
         (user-error "No active tabs found")
       (ia/tab-bar-modified--execute-switch
-       (ia/tab-bar-modified--consult-read
+       (display-buffer-pivot-tab-bar-consult-read
         "Switch Workspace (or create new): " candidates default-cand)
        candidates))))
 
 (defun ia-advice/tab-bar-switch-indexed-override ()
   "Collision-free override for the built-in `tab-bar-switch-to-tab` command."
   (interactive)
-  (ia/tab-bar-modified--purge-child-frames)
+  (display-buffer-pivot-tab-bar-consult-purge-child-frames)
 
   (let* ((candidates (display-buffer-pivot-tab-bar--get-candidates))
          (current-idx (1+ (tab-bar--current-tab-index)))
@@ -186,7 +102,7 @@ arguments."
           (filtered-cands nil)
           (plain-cands nil))
 
-     (ia/tab-bar-modified--purge-child-frames)
+     (display-buffer-pivot-tab-bar-consult-purge-child-frames)
 
      (dolist (cand rich-cands)
        (let ((is-active (nth 1 cand)))
@@ -254,12 +170,6 @@ arguments."
         (tab-bar-move-tab 1)
       (user-error "Tab is already at the rightmost position"))))
 
-(defun ia/tab-bar-modified--consult-read-tab-name (prompt candidates initial)
-  "Read a tab name with consult previews.
-PROMPT, CANDIDATES and INITIAL are the arguments
-`display-buffer-pivot-tab-bar-read-function' receives."
-  (ia/tab-bar-modified--consult-read prompt candidates initial))
-
 (defvar ia/tab-bar-modified--read-function nil
   "The tab reader to restore when the consult mode is disabled.")
 
@@ -273,11 +183,11 @@ PROMPT, CANDIDATES and INITIAL are the arguments
         (setq ia/tab-bar-modified--read-function
               display-buffer-pivot-tab-bar-read-function)
         (setq display-buffer-pivot-tab-bar-read-function
-              #'ia/tab-bar-modified--consult-read-tab-name)
+              #'display-buffer-pivot-tab-bar-consult-read-tab-name)
         (advice-add 'tab-bar-switch-to-tab :override 'ia-advice/tab-bar-switch-indexed-override)
         (advice-add 'tab-bar-rename-tab :around 'ia-advice/tab-bar-rename-tab-around))
     (when (eq display-buffer-pivot-tab-bar-read-function
-              #'ia/tab-bar-modified--consult-read-tab-name)
+              #'display-buffer-pivot-tab-bar-consult-read-tab-name)
       (setq display-buffer-pivot-tab-bar-read-function
             ia/tab-bar-modified--read-function))
     (advice-remove 'tab-bar-switch-to-tab 'ia-advice/tab-bar-switch-indexed-override)

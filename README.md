@@ -52,12 +52,23 @@ reader are in `display-buffer-pivot`.
 ## The tab prompt
 
 `display-buffer-pivot-tab-bar-read-tab-name` reads a tab name with
-`completing-read`.  `ia/tab-bar-modified-consult-mode` sets
+`completing-read`.  The display package's optional
+`display-buffer-pivot-tab-bar-consult` library supplies a consult
+reader with previews and the
+`display-buffer-pivot-tab-bar-consult-mode` that installs it.  That
+library deletes child frames before saving the window state and
+preserves the minibuffer height while a preview selects a tab, so it
+needs only consult and the display package.
+
+`ia/tab-bar-modified-consult-mode` sets
 `display-buffer-pivot-tab-bar-read-function` to
-`ia/tab-bar-modified--consult-read-tab-name`, so the display action's
-tab prompt uses the same consult reader with previews as
-`ia/consult-tab-switch`.  Disabling the mode restores the previous
-reader; with the mode off, the plain `completing-read` reader is used.
+`display-buffer-pivot-tab-bar-consult-read-tab-name`, the display
+package's reader, so the display action's tab prompt uses the same
+consult reader as `ia/consult-tab-switch`.  The built-in tab overrides
+and the rename advice call
+`display-buffer-pivot-tab-bar-consult-purge-child-frames`.  Disabling
+the mode restores the previous read function; with the mode off, the
+plain `completing-read` reader is used.
 
 ## Workarounds
 
