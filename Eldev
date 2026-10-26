@@ -1,0 +1,8 @@
+;;; -*- mode: emacs-lisp; lexical-binding: t; -*-
+
+(eldev-use-package-archive 'melpa)
+(eldev-add-loading-roots 'test "appearance" "buffer" "completion" "core"
+                         "doc-lookup" "org")
+(eldev-add-extra-dependencies 'test 'buttercup)
+(eldev-use-local-dependency (or (getenv "DISPLAY_PACKAGE")
+                                "../display-buffer-pivot"))
