@@ -16,6 +16,11 @@ Emacs.  `layout/ia-window-utility.el` requires `ace-window`.
 `display-buffer-pivot`; `avy` is required by `ace-window`.  The other
 libraries require the packages their `require` forms name.
 
+`emacs-utils.el` is the package main file; package.el reads only its
+`Package-Requires` and `URL`.  The `Author`, `URL` and `SPDX` headers in
+the layout files are comments.  The layout files name their dependencies
+here and in their Commentary; package.el does not install them.
+
 ## Installation
 
 Clone the repository and add its directories to `load-path`:

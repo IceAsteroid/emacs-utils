@@ -2,11 +2,11 @@
 
 ;; Author: IceAsteroid
 ;; URL: https://github.com/IceAsteroid/emacs-utils
-;; Package-Requires: ((ace-window "0"))
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;;; Commentary:
-;; The most recently used window command.  The window test, the split
+;; The most recently used window command.  This library requires
+;; `ace-window`; install it separately.  The window test, the split
 ;; options and the window prompt are in the `display-buffer-pivot'
 ;; package.
 

@@ -2,16 +2,17 @@
 
 ;; Author: IceAsteroid
 ;; URL: https://github.com/IceAsteroid/emacs-utils
-;; Package-Requires: ((consult "0") (display-buffer-pivot "0.0.0"))
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;;; Commentary:
 ;; The consult integration, the tab-switch commands and the built-in
-;; overrides for the tab bar.  The candidates, history, sort, annotations
-;; and the consult reader are in `display-buffer-pivot-tab-bar' and its
-;; optional `display-buffer-pivot-tab-bar-consult' library.  The mode
-;; installs that library's reader; the overrides and the rename advice
-;; call its child-frame cleanup.
+;; overrides for the tab bar.  This library requires `consult` and the
+;; `display-buffer-pivot` package; install them separately.  The
+;; candidates, history, sort, annotations and the consult reader are in
+;; `display-buffer-pivot-tab-bar' and its optional
+;; `display-buffer-pivot-tab-bar-consult' library.  The mode installs
+;; that library's reader; the overrides and the rename advice call its
+;; child-frame cleanup.
 
 (require 'cl-lib)
 (require 'display-buffer-pivot-tab-bar-consult) ; The consult reader from the display-buffer-pivot package.

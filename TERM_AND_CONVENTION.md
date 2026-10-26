@@ -125,6 +125,12 @@ behavior, follow these rules.
   in a cycle.  A file that no other file requires may define commands
   and modes and may require libraries; a user's configuration that
   calls a library's functions does not change the list.
+- Only the main file of a package carries `Package-Requires`.  A library
+  that is not the package main file names its optional dependency in its
+  Commentary and in `README.md`; a `Package-Requires` header there is not
+  package metadata, and package.el ignores it.  `Author`, `URL` and
+  `SPDX` headers in a library are comments; the main file's `URL` is
+  package metadata.
 - A term must be added to "Core terms" with the maintainer's agreement
   before it is used; a term that is dropped moves to "Terms not used"
   with its replacement.

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Doc: the layout files name their optional dependencies in their
+  Commentary and the README; only `emacs-utils.el` carries the package
+  `Package-Requires`.
 - Add: the load-path helper `emacs-utils.el`.
 - Add: the core utility.
 - Add: the buffer utilities.

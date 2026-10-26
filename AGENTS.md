@@ -17,6 +17,9 @@ the `ia/other-window-mru` command and the consult integration remain in
 optional `display-buffer-pivot-tab-bar-consult` library, sets
 `display-buffer-pivot-tab-bar-read-function` to its reader when the mode
 is enabled, and calls its child-frame cleanup for the built-in overrides.
+`emacs-utils.el` is the package main file and carries the only
+`Package-Requires`; a library names its optional dependency in its
+Commentary and `README.md`.
 `README.md` lists the directories; the `Makefile` comments state what
 `FILES` and `CHECK_FILES` hold.
 
