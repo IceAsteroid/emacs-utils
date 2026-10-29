@@ -4,10 +4,10 @@ A personal collection of Emacs Lisp libraries and command files used in
 a user's configuration.  The display action, the pivot, the window
 test, the split options, the window prompt and the tab bar reader are
 in their own repository:
-`https://github.com/IceAsteroid/disbuf-pivot`.  The package is
-`disbuf-pivot`; `disbuf` is the short form of `display-buffer`.  This
-repository keeps the `ia/other-window-mru` command and the consult
-integration; the consult integration requires the display package.
+`https://github.com/IceAsteroid/disbuf-pivot`.  The display
+package is `disbuf-pivot`.  This repository keeps the
+`ia/other-window-mru` command and the consult integration; the consult
+integration requires the display package.
 
 ## Requirements
 
