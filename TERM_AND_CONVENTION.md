@@ -49,7 +49,7 @@ fragment is not prose and is not checked.
   A function that creates a buffer names `get-buffer-create`; the
   display rule never creates one.
 - question, for the prompt of `completing-read` — say "prompt", or name
-  the function that reads (`display-buffer-pivot-tab-bar-read-tab-name`).  Emacs
+  the function that reads (`disbuf-pivot-tab-bar-read-tab-name`).  Emacs
   calls the first argument of `completing-read` PROMPT; its docstring
   says "PROMPT is a string to prompt with".
 

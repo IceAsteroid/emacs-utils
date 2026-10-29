@@ -5,4 +5,4 @@
                          "doc-lookup" "org")
 (eldev-add-extra-dependencies 'test 'buttercup)
 (eldev-use-local-dependency (or (getenv "DISPLAY_PACKAGE")
-                                "../display-buffer-pivot"))
+                                "../disbuf-pivot"))

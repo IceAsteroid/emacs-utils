@@ -14,8 +14,8 @@ file per feature.  The display action, pivot, window test, split
 options, window prompt and tab bar reader are in their own repository;
 the `ia/other-window-mru` command and the consult integration remain in
 `layout/`.  The consult integration consumes the display package's
-optional `display-buffer-pivot-tab-bar-consult` library, sets
-`display-buffer-pivot-tab-bar-read-function` to its reader when the mode
+optional `disbuf-pivot-tab-bar-consult` library, sets
+`disbuf-pivot-tab-bar-read-function` to its reader when the mode
 is enabled, and calls its child-frame cleanup for the built-in overrides.
 `emacs-utils.el` is the package main file and carries the only
 `Package-Requires`; a library names its optional dependency in its
@@ -32,7 +32,7 @@ Run `make check`: it checks the library graph, byte-compiles the files
 `CHECK_FILES` names, and runs the tests under `test/` with
 `eldev test`.  `make checkdoc` reports the docstring findings.  The
 consult integration needs the display package; the Makefile uses
-`../display-buffer-pivot`, or the directory named by
+`../disbuf-pivot`, or the directory named by
 `DISPLAY_PACKAGE`.  GitHub Actions runs both commands on every push and
 pull request.
 
@@ -41,7 +41,7 @@ pull request.
   the display package.  New tests use `describe`/`it`/`expect`.
 - The Makefile finds ace-window, avy and consult under `ELPA` for the
   compile and checkdoc, and the display package at
-  `../display-buffer-pivot`; `eldev test` installs buttercup into
+  `../disbuf-pivot`; `eldev test` installs buttercup into
   `.eldev`, which is ignored.
 - Docstrings wrap at 80 columns.  A `defvar` or `defcustom` docstring
   longer than 80 columns makes the byte-compiler warn; checkdoc reports

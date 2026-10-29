@@ -10,8 +10,8 @@ jobs:
 
       - uses: actions/checkout@v5
         with:
-          repository: IceAsteroid/display-buffer-pivot
-          path: display-buffer-pivot
+          repository: IceAsteroid/disbuf-pivot
+          path: disbuf-pivot
 
       - uses: jcs090218/setup-emacs@master
         with:
@@ -25,7 +25,7 @@ jobs:
           emacs -Q --batch --eval "(progn (require 'package) (add-to-list 'package-archives '(\"melpa\" . \"https://melpa.org/packages/\") t) (package-initialize) (package-refresh-contents) (package-install 'ace-window) (package-install 'avy) (package-install 'consult))"
 
       - name: Check
-        run: make check DISPLAY_PACKAGE=display-buffer-pivot
+        run: make check DISPLAY_PACKAGE=disbuf-pivot
 
       - name: Checkdoc
-        run: make checkdoc DISPLAY_PACKAGE=display-buffer-pivot
+        run: make checkdoc DISPLAY_PACKAGE=disbuf-pivot

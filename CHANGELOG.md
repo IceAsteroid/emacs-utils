@@ -15,8 +15,8 @@
 - Add: the Org utilities.
 - Add: the window command.
 - Add: the consult tab bar integration, which consumes the display
-  package's optional `display-buffer-pivot-tab-bar-consult` library,
-  sets `display-buffer-pivot-tab-bar-read-function` to its reader, and
+  package's optional `disbuf-pivot-tab-bar-consult` library,
+  sets `disbuf-pivot-tab-bar-read-function` to its reader, and
   calls its child-frame cleanup for the built-in tab overrides.
 - Fix: the display package's optional consult library supplies the
   consult reader with the child-frame cleanup and the minibuffer-height
@@ -25,6 +25,6 @@
 - Add: the workarounds.
 - Add: the tests.
 - Doc: the README, the conventions and the agent instructions.
-- Doc: the display package is `display-buffer-pivot`; the consult
-  integration consumes its `display-buffer-pivot-tab-bar` reader and
+- Doc: the display package is `disbuf-pivot`; the consult
+  integration consumes its `disbuf-pivot-tab-bar` reader and
   its optional consult reader.

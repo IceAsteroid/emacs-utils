@@ -2,7 +2,7 @@
 
 EMACS ?= emacs
 ELPA ?= $(HOME)/.emacs.d/elpa
-DISPLAY_PACKAGE ?= ../display-buffer-pivot
+DISPLAY_PACKAGE ?= ../disbuf-pivot
 
 ACE_WINDOW := $(firstword $(wildcard $(ELPA)/ace-window-*))
 AVY := $(firstword $(wildcard $(ELPA)/avy-*))

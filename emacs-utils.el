@@ -11,7 +11,7 @@
 ;; Add the repository's directories to `load-path'.  This file does not
 ;; load a library or enable a mode; require the library you need.  The
 ;; display action, the pivot, the window utility, the tab bar reader and
-;; its optional consult library are in the `display-buffer-pivot'
+;; its optional consult library are in the `disbuf-pivot'
 ;; package; the `ia/other-window-mru' command and the consult
 ;; integration remain in `layout/'.  The other directories are
 ;; independent utilities.  See README.md.

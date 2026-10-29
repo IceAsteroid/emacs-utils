@@ -4,7 +4,8 @@ A personal collection of Emacs Lisp libraries and command files used in
 a user's configuration.  The display action, the pivot, the window
 test, the split options, the window prompt and the tab bar reader are
 in their own repository:
-`https://github.com/IceAsteroid/display-buffer-pivot`.  This
+`https://github.com/IceAsteroid/disbuf-pivot`.  The package is
+`disbuf-pivot`; `disbuf` is the short form of `display-buffer`.  This
 repository keeps the `ia/other-window-mru` command and the consult
 integration; the consult integration requires the display package.
 
@@ -13,7 +14,7 @@ integration; the consult integration requires the display package.
 Emacs 31.1 is the tested version.  `emacs-utils.el` requires only
 Emacs.  `layout/ia-window-utility.el` requires `ace-window`.
 `layout/ia-tab-bar-modified-consult.el` requires `consult` and
-`display-buffer-pivot`; `avy` is required by `ace-window`.  The other
+`disbuf-pivot`; `avy` is required by `ace-window`.  The other
 libraries require the packages their `require` forms name.
 
 `emacs-utils.el` is the package main file; package.el reads only its
@@ -33,7 +34,7 @@ Clone the repository and add its directories to `load-path`:
 The consult integration also needs the display package on `load-path`:
 
 ```elisp
-(add-to-list 'load-path "/path/to/display-buffer-pivot")
+(add-to-list 'load-path "/path/to/disbuf-pivot")
 (require 'ia-tab-bar-modified-consult)
 (ia/tab-bar-modified-consult-mode +1)
 ```
@@ -52,26 +53,26 @@ The directories hold libraries and command files: `appearance/`,
 `layout/`, `org/` and `workaround/`.  The layout files are the
 `ia/other-window-mru` command and the consult integration.  The display
 action, pivot, window test, split options, window prompt and tab bar
-reader are in `display-buffer-pivot`.
+reader are in `disbuf-pivot`.
 
 ## The tab prompt
 
-`display-buffer-pivot-tab-bar-read-tab-name` reads a tab name with
+`disbuf-pivot-tab-bar-read-tab-name` reads a tab name with
 `completing-read`.  The display package's optional
-`display-buffer-pivot-tab-bar-consult` library supplies a consult
+`disbuf-pivot-tab-bar-consult` library supplies a consult
 reader with previews and the
-`display-buffer-pivot-tab-bar-consult-mode` that installs it.  That
+`disbuf-pivot-tab-bar-consult-mode` that installs it.  That
 library deletes child frames before saving the window state and
 preserves the minibuffer height while a preview selects a tab, so it
 needs only consult and the display package.
 
 `ia/tab-bar-modified-consult-mode` sets
-`display-buffer-pivot-tab-bar-read-function` to
-`display-buffer-pivot-tab-bar-consult-read-tab-name`, the display
+`disbuf-pivot-tab-bar-read-function` to
+`disbuf-pivot-tab-bar-consult-read-tab-name`, the display
 package's reader, so the display action's tab prompt uses the same
 consult reader as `ia/consult-tab-switch`.  The built-in tab overrides
 and the rename advice call
-`display-buffer-pivot-tab-bar-consult-purge-child-frames`.  Disabling
+`disbuf-pivot-tab-bar-consult-purge-child-frames`.  Disabling
 the mode restores the previous read function; with the mode off, the
 plain `completing-read` reader is used.
 
@@ -86,7 +87,7 @@ plain `completing-read` reader is used.
 window command and the consult integration, and runs the buttercup tests
 under `test/`.  `make checkdoc` reports the docstring findings.  The
 consult integration needs the display package; the Makefile uses
-`../display-buffer-pivot`, or the directory named by
+`../disbuf-pivot`, or the directory named by
 `DISPLAY_PACKAGE`.  The library check reads every `.el` file in the
 feature directories and `emacs-utils.el`, then computes the libraries
 from the `require` forms and checks for cycles.
@@ -95,7 +96,7 @@ The test tree mirrors the source directories that have tests:
 `test/appearance/`, `test/buffer/`, `test/completion/`, `test/core/`,
 `test/doc-lookup/` and `test/org/`.  The layout files are checked by
 compile and checkdoc, not tests; the display tests are in
-`display-buffer-pivot`.  The `info-inbox/` and `workaround/`
+`disbuf-pivot`.  The `info-inbox/` and `workaround/`
 directories have no tests.
 
 ## Conventions

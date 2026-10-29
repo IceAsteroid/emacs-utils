@@ -7,7 +7,7 @@
 ;;; Commentary:
 ;; The most recently used window command.  This library requires
 ;; `ace-window`; install it separately.  The window test, the split
-;; options and the window prompt are in the `display-buffer-pivot'
+;; options and the window prompt are in the `disbuf-pivot'
 ;; package.
 
 ;;; Code:
